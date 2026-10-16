@@ -23,7 +23,7 @@ pub fn open(root: &Path) -> AppResult<Connection> {
 pub fn get(db: &Connection, id: &str) -> AppResult<Review> {
     let raw: String = db
         .query_row("SELECT data FROM reviews WHERE id=?", [id], |r| r.get(0))
-        .map_err(|_| "レビューが見つかりません")?;
+        .map_err(|_| "レポートが見つかりません")?;
     serde_json::from_str(&raw).map_err(|e| e.to_string())
 }
 pub fn save(db: &mut Connection, mut r: Review, reason: &str) -> AppResult<Review> {

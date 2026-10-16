@@ -1,6 +1,6 @@
-# World Review Assistant
+# World Report Assistant
 
-このプロジェクトはWebView2を使うWindows用のワールドレビュー補助アプリ。生成AI APIは組み込まない。記事作成はこのプロジェクトのCodexで行う。
+このプロジェクトはWebView2を使うWindows用のワールドレポート補助アプリ。生成AI APIは組み込まない。記事作成はこのプロジェクトのCodexで行う。
 
 ## 記事作成を依頼されたら
 

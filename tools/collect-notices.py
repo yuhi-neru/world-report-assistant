@@ -32,5 +32,5 @@ for pkg in cargo['package']:
     meta=tomllib.loads((folder/'Cargo.toml').read_text(encoding='utf-8'))
     add('Rust '+pkg['name'],pkg['version'],meta.get('package',{}).get('license','See package source'),folder)
 
-(root/'THIRD_PARTY_NOTICES.txt').write_text('World Review Assistant — Third-party notices\n\nDependency license texts bundled with this build. Build-time and platform-specific dependencies may also be listed.\n'+''.join(sections),encoding='utf-8')
+(root/'THIRD_PARTY_NOTICES.txt').write_text('World Report Assistant — Third-party notices\n\nDependency license texts bundled with this build. Build-time and platform-specific dependencies may also be listed.\n'+''.join(sections),encoding='utf-8')
 print(f'Collected license notices for {len(sections)} dependencies')

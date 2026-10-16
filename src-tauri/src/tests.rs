@@ -344,3 +344,24 @@ fn standalone_document_does_not_create_a_fictitious_world() {
     std::fs::write(&path, "no title").unwrap();
     assert!(workspace::import_document(tmp.path(), &mut db, &path).is_err());
 }
+
+#[test]
+fn document_edit_keeps_publication_identity_and_detects_stale_versions() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let path = tmp.path().join("notice.md");
+    std::fs::write(&path, "# Before\n\nOriginal text").unwrap();
+    let mut r = workspace::import_document(tmp.path(), &mut db, &path).unwrap();
+    r.edit_url = "https://example.test/entry/1".into();
+    r.public_url = "https://example.test/report".into();
+    r.status = "published".into();
+    store::state(&db, &r).unwrap();
+    std::fs::write(&path, "# After\n\nRenamed text").unwrap();
+    let next = workspace::edit_document(tmp.path(), &mut db, &path, &r.id, r.revision).unwrap();
+    assert_eq!(next.id, r.id);
+    assert_eq!(next.edit_url, r.edit_url);
+    assert_eq!(next.public_url, r.public_url);
+    assert_eq!(next.status, "published");
+    assert_eq!(next.title, "After");
+    assert!(workspace::edit_document(tmp.path(), &mut db, &path, &r.id, r.revision).is_err());
+}

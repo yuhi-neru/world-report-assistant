@@ -2,11 +2,11 @@
 
 VRChatのワールドを巡ったあとに、URLと写真、それから短い感想を残しておきたい。そこからブログ記事を作りつつ、あとで「あの場所、どこだっけ」と探せるようにもしたい。
 
-そのための第一歩として、ワールドレビューの記入テンプレートと、Windows用の補助ツール「World Review Assistant」を用意しました。どちらもGitHubで公開します。まだ使いながら整えていく段階ですが、なぜこの形にしたのか、どう使うのかを先に書いておきます。
+そのための第一歩として、ワールドレポートの記入テンプレートと、Windows用の補助ツール「World Report Assistant」を用意しました。どちらもGitHubで公開します。まだ使いながら整えていく段階ですが、なぜこの形にしたのか、どう使うのかを先に書いておきます。
 
-[https://github.com/yuhi-neru/world-review-assistant:embed:cite]
+[https://github.com/yuhi-neru/world-report-assistant:embed:cite]
 
-[ソースコード・使い方を見る](https://github.com/yuhi-neru/world-review-assistant) ／ [Windows版をダウンロードする](https://github.com/yuhi-neru/world-review-assistant/releases/latest)
+[ソースコード・使い方を見る](https://github.com/yuhi-neru/world-report-assistant) ／ [Windows版をダウンロードする](https://github.com/yuhi-neru/world-report-assistant/releases/latest)
 
 ## なぜ、ワールドの記録に「規格」を用意するのか
 
@@ -14,7 +14,7 @@ VRChatのワールドを巡ったあとに、URLと写真、それから短い�
 
 たとえば、ワールド名や作者、URLはその場所の基本情報です。一方で、「窓際でぼんやりできた」「友達と話すのによさそう」といった感想は、自分が訪れたときの記録です。同じ場所でも、訪問日や使った環境が違えば、体験は変わるかもしれません。
 
-この二つを分けて残しておけば、記事を読み返すときにも、将来データを検索するときにも扱いやすくなります。ワールドのIDと、一回ごとのレビューのIDも分けます。再訪したときは、別の記録として残せます。
+この二つを分けて残しておけば、記事を読み返すときにも、将来データを検索するときにも扱いやすくなります。ワールドのIDと、一回ごとのレポートのIDも分けます。再訪したときは、別の記録として残せます。
 
 最終的には、AIに「静かな場所で、前に行った雨のワールドを探して」のように聞ける状態を目指しています。ただ、今のツールにAI検索はまだありません。まずはSQLiteに情報・メモ・記事を溜め、必要になったら検索の仕組みを足していくつもりです。
 
@@ -22,7 +22,7 @@ VRChatのワールドを巡ったあとに、URLと写真、それから短い�
 
 ## テンプレートには何を書く？
 
-[記入テンプレートはこちら](https://github.com/yuhi-neru/world-review-assistant/blob/main/templates/world-review-v0.1.md)。コピーすれば、補助ツールを使わずにメモ帳やMarkdownでも使えます。
+[記入テンプレートはこちら](https://github.com/yuhi-neru/world-report-assistant/blob/main/templates/world-report-v0.1.md)。コピーすれば、補助ツールを使わずにメモ帳やMarkdownでも使えます。
 
 最初にワールドのURL・名前・作者などの基本情報、その次に訪問日と実際の訪問環境を書きます。その下の感想は、次の7項目です。
 
@@ -45,13 +45,13 @@ VRChatのワールドを巡ったあとに、URLと写真、それから短い�
 
 大事にしたいのは、**作者の説明、自分の体験、写真から見えることを混ぜない**ことです。PCで訪問しただけなら「PCで訪問」と書き、「PC専用」とは決めません。知らない項目は「未確認」のまま。写真だけを見て、音や動作の軽さを補うこともしません。
 
-項目の考え方と保存データの対応は、[記録形式の説明](https://github.com/yuhi-neru/world-review-assistant/blob/main/docs/world-review-format.md)にまとめています。
+項目の考え方と保存データの対応は、[記録形式の説明](https://github.com/yuhi-neru/world-report-assistant/blob/main/docs/world-report-format.md)にまとめています。
 
 ## 補助ツールでは、入力から記事投稿までをつなぐ
 
-World Review Assistantは、Microsoft EdgeのWebView2を使う、インストールできるWindowsアプリです。ワールド情報やメモ、写真、記事をこのPCに保存します。
+World Report Assistantは、Microsoft EdgeのWebView2を使う、インストールできるWindowsアプリです。ワールド情報やメモ、写真、記事をこのPCに保存します。
 
-![ワールドURLと箇条書きのメモを入力する画面](https://raw.githubusercontent.com/yuhi-neru/world-review-assistant/main/docs/images/notes.png)
+![ワールドURLと箇条書きのメモを入力する画面](https://raw.githubusercontent.com/yuhi-neru/world-report-assistant/main/docs/images/notes.png)
 
 使う流れは、次のようになります。
 
@@ -69,13 +69,13 @@ AIに任せるのは、残した素材を文章に整えるところです。ア
 
 ## インストールと最初の設定
 
-[GitHub Releases](https://github.com/yuhi-neru/world-review-assistant/releases/latest)から **WorldReviewAssistant-Setup-0.1.1-win-x64.exe** をダウンロードします。Windows 10/11の64bit版向けです。利用するだけならNode.jsやRustの導入は不要で、WebView2がない場合はインストーラーがMicrosoftのRuntimeを導入します。
+[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest)から **WorldReportAssistant-Setup-0.1.2-win-x64.exe** をダウンロードします。Windows 10/11の64bit版向けです。利用するだけならNode.jsやRustの導入は不要で、WebView2がない場合はインストーラーがMicrosoftのRuntimeを導入します。
 
 今回の配布版は試作版です。コード署名は付けていません。手元のWindowsでビルドと動作確認をしていますが、別のPCや新規のWindows環境での検証はこれからです。
 
 はてなへの投稿には、アプリの「設定・ブログ連携」ではてなID、ブログID、APIキーを登録します。APIキー欄には、はてなが発行した投稿用メールアドレスを貼り付けることもできます。このアドレスは投稿に使える秘密情報なので、記事やGitHubには載せません。
 
-また、**ブログ側の既定の編集モードをMarkdownに設定**し、アプリ側でも確認欄をオンにします。詳しい手順は[README](https://github.com/yuhi-neru/world-review-assistant#readme)に載せています。
+また、**ブログ側の既定の編集モードをMarkdownに設定**し、アプリ側でも確認欄をオンにします。詳しい手順は[README](https://github.com/yuhi-neru/world-report-assistant#readme)に載せています。
 
 ツールとテンプレートはMITライセンスで公開します。アプリが別途AI APIの料金を発生させることはありませんが、記事を書くCodexの契約や利用上限は使っているプランに従います。はてなの通常の記事投稿は無料プランで使えます。写真には[はてなフォトライフの無料枠（月300MB）](https://help.hatenablog.com/entry/hatena/fotolife)があるので、無制限ではありません。
 

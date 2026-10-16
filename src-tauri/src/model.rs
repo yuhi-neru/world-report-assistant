@@ -106,7 +106,7 @@ impl Review {
             || self.revision < 0
             || self.revision >= i64::MAX - 1
         {
-            return Err("レビューの形式が不正です".into());
+            return Err("レポートの形式が不正です".into());
         }
         if !matches!(self.kind.as_str(), "world-review" | "article")
             || (self.kind == "article" && (self.include_metadata || !self.world.id.is_empty()))

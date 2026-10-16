@@ -161,6 +161,13 @@ impl Engine {
                 &mut self.db,
                 std::path::Path::new(string("path"))
             )?)),
+            "edit-document" => Ok(json!(workspace::edit_document(
+                &self.root,
+                &mut self.db,
+                std::path::Path::new(string("path")),
+                string("id"),
+                v["revision"].as_i64().ok_or("現在の版が必要です")?
+            )?)),
             "confirm-markdown" => {
                 self.settings.markdown_confirmed = v["confirmed"]
                     .as_bool()
@@ -293,7 +300,7 @@ fn cli() -> bool {
         let id = args.get(3).map(String::as_str).unwrap_or("");
         if action == "help" {
             return Ok(
-                json!({"usage":["--cli list","--cli import-document ABSOLUTE_MD_PATH","--cli confirm-markdown true|false","--cli read REVIEW_ID","--cli prepare-codex REVIEW_ID","--cli import-article REVIEW_ID","--cli reconcile REVIEW_ID","--cli publish REVIEW_ID REVISION draft|public"],"workspace":root().to_string_lossy()}),
+                json!({"usage":["--cli list","--cli import-document ABSOLUTE_MD_PATH","--cli edit-document ABSOLUTE_MD_PATH ARTICLE_ID REVISION","--cli confirm-markdown true|false","--cli read REVIEW_ID","--cli prepare-codex REVIEW_ID","--cli import-article REVIEW_ID","--cli reconcile REVIEW_ID","--cli publish REVIEW_ID REVISION draft|public"],"workspace":root().to_string_lossy()}),
             );
         }
         if !matches!(
@@ -303,6 +310,7 @@ fn cli() -> bool {
                 | "check-photo"
                 | "list"
                 | "read"
+                | "edit-document"
                 | "import-document"
                 | "confirm-markdown"
                 | "prepare-codex"
@@ -315,6 +323,9 @@ fn cli() -> bool {
         let mut v = json!({"id":id});
         if action == "import-document" {
             v = json!({"path":id});
+        }
+        if action == "edit-document" {
+            v = json!({"path":id,"id":args.get(4).ok_or("記事IDが必要です")?,"revision":args.get(5).and_then(|s|s.parse::<i64>().ok()).ok_or("現在の版が必要です")?});
         }
         if action == "confirm-markdown" {
             v = json!({"confirmed":match id { "true" => true, "false" => false, _ => return Err("true または false を指定してください".into()) }});
@@ -373,5 +384,5 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![command])
         .run(tauri::generate_context!())
-        .expect("World Review Assistantを起動できませんでした");
+        .expect("World Report Assistantを起動できませんでした");
 }

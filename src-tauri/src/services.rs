@@ -19,7 +19,7 @@ pub fn client() -> AppResult<Client> {
         .default_headers(headers)
         .timeout(Duration::from_secs(35))
         .redirect(reqwest::redirect::Policy::none())
-        .user_agent("WorldReviewAssistant/0.1.0 (Windows personal publishing tool)")
+        .user_agent("WorldReportAssistant/0.1.2 (Windows personal publishing tool)")
         .build()
         .map_err(|_| "通信を初期化できませんでした".into())
 }
@@ -248,7 +248,7 @@ fn vrc_json(
     if !settings.api_contact.is_empty() {
         r = r.header(
             reqwest::header::USER_AGENT,
-            format!("WorldReviewAssistant/0.1.0 {}", settings.api_contact),
+            format!("WorldReportAssistant/0.1.2 {}", settings.api_contact),
         );
     }
     if let Some((u, p)) = basic {
@@ -443,7 +443,7 @@ fn upload_photo(client: &Client, s: &Settings, p: &Photo) -> AppResult<String> {
     } else {
         &p.caption
     };
-    let xml=format!("<?xml version=\"1.0\" encoding=\"utf-8\"?><entry xmlns=\"http://purl.org/atom/ns#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><title>{}</title><content mode=\"base64\" type=\"{}\">{}</content><dc:subject>Hatena Blog</dc:subject><generator>World Review Assistant</generator></entry>",xml_escape(title),p.mime,bytes);
+    let xml=format!("<?xml version=\"1.0\" encoding=\"utf-8\"?><entry xmlns=\"http://purl.org/atom/ns#\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><title>{}</title><content mode=\"base64\" type=\"{}\">{}</content><dc:subject>Hatena Blog</dc:subject><generator>World Report Assistant</generator></entry>",xml_escape(title),p.mime,bytes);
     let post_url = "https://f.hatena.ne.jp/atom/post";
     #[cfg(test)]
     let post_url = s.test_photo_post.as_deref().unwrap_or(post_url);

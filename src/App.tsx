@@ -533,7 +533,7 @@ export default function App() {
             <Compass size={24} />
           </div>
           <div>
-            WORLD REVIEW<small>ASSISTANT</small>
+            WORLD REPORT<small>ASSISTANT</small>
           </div>
         </div>
         <div className="sidebar-label">YOUR FIELD NOTES</div>
@@ -603,7 +603,7 @@ export default function App() {
             設定・ブログ連携
           </button>
           <div className="sidebar-version">
-            World Review Assistant <span>0.1</span>
+            World Report Assistant <span>0.1</span>
           </div>
         </div>
       </aside>
@@ -612,7 +612,7 @@ export default function App() {
           <div className="breadcrumb">
             <span>マイノート</span>
             <span>/</span>
-            <strong>{draft.world.name || "新しいワールドレビュー"}</strong>
+            <strong>{draft.world.name || "新しいワールドレポート"}</strong>
           </div>
           <div className="top-actions">
             <span
@@ -655,7 +655,7 @@ export default function App() {
                   : "今日の体験を、記事に。")}
             </h1>
             <p className="page-description">
-              メモと写真を残して、Codexと一緒にあなただけのワールドレビューを。
+              メモと写真を残して、Codexと一緒にあなただけのワールドレポートを。
             </p>
           </div>
           <span
@@ -1282,7 +1282,7 @@ export default function App() {
                 </header>
                 <div className="article-paper">
                   <p className="paper-date">
-                    {draft.visitedAt} <span>WORLD REVIEW</span>
+                    {draft.visitedAt} <span>WORLD REPORT</span>
                   </p>
                   <h1>{draft.title || "記事のタイトルがここに入ります"}</h1>
                   {draft.body ? (

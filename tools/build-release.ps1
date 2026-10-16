@@ -11,10 +11,10 @@ try {
     npm.cmd run bundle
     if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
     $reviewVersion = (Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json).version
-    $reviewSetup = Join-Path $reviewRoot "src-tauri/target/release/bundle/nsis/World Review Assistant_${reviewVersion}_x64-setup.exe"
+    $reviewSetup = Join-Path $reviewRoot "src-tauri/target/release/bundle/nsis/World Report Assistant_${reviewVersion}_x64-setup.exe"
     $reviewOut = Join-Path $reviewRoot 'artifacts'
     New-Item -ItemType Directory -Path $reviewOut -Force | Out-Null
-    $reviewDestination = Join-Path $reviewOut "WorldReviewAssistant-Setup-${reviewVersion}-win-x64.exe"
+    $reviewDestination = Join-Path $reviewOut "WorldReportAssistant-Setup-${reviewVersion}-win-x64.exe"
     Copy-Item -LiteralPath $reviewSetup -Destination $reviewDestination
     Copy-Item -LiteralPath (Join-Path $reviewRoot 'src-tauri/target/release/world-review-assistant.exe') -Destination (Join-Path $reviewOut 'world-review-assistant.exe')
     Get-FileHash -Algorithm SHA256 -LiteralPath $reviewDestination | Format-List

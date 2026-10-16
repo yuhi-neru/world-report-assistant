@@ -1,4 +1,4 @@
-# World Review Assistant
+# World Report Assistant
 
 VRChatのワールド情報、訪問メモ、撮影写真を残し、**このプロジェクトのCodexで記事を作って、添削して、はてなブログへ投稿する**Windows用の補助アプリです。WebView2 + Tauri / React / Rust / SQLite。PWAやブラウザ拡張ではありません。
 
@@ -6,13 +6,13 @@ VRChatのワールド情報、訪問メモ、撮影写真を残し、**このプ
 
 ## テンプレートと記録形式
 
-アプリを使わずに始められる [記入テンプレート](templates/world-review-v0.1.md) と、[なぜ項目を分けるか・入力例・保存項目の対応](docs/world-review-format.md) を公開しています。形式は試案 v0.1です。現時点でAI検索は実装していません。まずメモ・写真・記事をSQLiteに蓄積する道具です。
+アプリを使わずに始められる [記入テンプレート](templates/world-report-v0.1.md) と、[なぜ項目を分けるか・入力例・保存項目の対応](docs/world-report-format.md) を公開しています。形式は試案 v0.1です。現時点でAI検索は実装していません。まずメモ・写真・記事をSQLiteに蓄積する道具です。
 
 ![記録画面](docs/images/notes.png)
 
 ## インストール
 
-[GitHub Releases](https://github.com/yuhi-neru/world-review-assistant/releases/latest) から `WorldReviewAssistant-Setup-0.1.1-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
+[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.1.2-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
 
 コード署名はしていません。ビルド検証済みでも、別PCでのSmartScreen表示やクリーンWindows環境での動作は未検証です。
 
@@ -49,7 +49,7 @@ Codexに「添削済みの記事を公開して」と依頼することもでき
 workspace/
   data/reviews.sqlite3       ← ワールド・メモ・記事・写真・履歴・投稿状態
   private/settings.bin      ← Windowsユーザーに結びついた暗号化設定
-  reviews/<レビューID>/
+  reviews/<レポートID>/
     review.json             ← 現在の保存内容の控え（DBが原本）
     edited.md               ← 現在の添削済み本文の控え
     input.json              ← Codex向けの入力情報と写真一覧
@@ -113,3 +113,5 @@ powershell -ExecutionPolicy Bypass -File tools/build-release.ps1
 ## ライセンス
 
 MIT。配布物に含まれる依存ライブラリのライセンスは [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) に記載しています。
+
+開発版は `tools/start-dev.ps1` で起動します。Windows PowerShell 5.1でも日本語を読み込めるよう、起動スクリプトはUTF-8 BOM付きです。既存の記事は `--cli edit-document ABSOLUTE_MD_PATH ARTICLE_ID REVISION` で同じIDのまま本文を更新できます。公開は別途 `publish` で行います。

@@ -1,4 +1,4 @@
-World Review Assistant — Third-party notices
+World Report Assistant — Third-party notices
 
 Dependency license texts bundled with this build. Build-time and platform-specific dependencies may also be listed.
 
