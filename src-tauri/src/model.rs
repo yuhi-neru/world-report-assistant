@@ -1,0 +1,206 @@
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+pub type AppResult<T> = Result<T, String>;
+pub fn now() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs() as i64
+}
+pub fn hash(input: &[u8]) -> String {
+    format!("{:x}", Sha256::digest(input))
+}
+pub fn valid_id(id: &str) -> bool {
+    uuid::Uuid::parse_str(id).is_ok_and(|v| v.to_string() == id)
+}
+pub fn world_id(input: &str) -> AppResult<String> {
+    let input = input.trim();
+    let candidate = if input.starts_with("wrld_") && input.len() == 41 {
+        input.to_owned()
+    } else {
+        let u = reqwest::Url::parse(input).map_err(|_| "VRChatのワールドURLを入力してください")?;
+        if u.scheme() != "https"
+            || !matches!(u.host_str(), Some("vrchat.com" | "www.vrchat.com"))
+            || !u.username().is_empty()
+            || u.password().is_some()
+            || u.port_or_known_default() != Some(443)
+        {
+            return Err("https://vrchat.com/ で始まるワールドURLを入力してください".into());
+        }
+        u.query_pairs()
+            .find(|(k, _)| k == "worldId")
+            .map(|(_, v)| v.into_owned())
+            .or_else(|| {
+                u.path_segments()?
+                    .find(|p| p.starts_with("wrld_"))
+                    .map(str::to_owned)
+            })
+            .ok_or("URLにワールドIDが含まれていません")?
+    };
+    let tail = candidate
+        .strip_prefix("wrld_")
+        .ok_or("ワールドIDの形式を確認してください")?;
+    if !valid_id(tail) {
+        return Err("ワールドIDの形式を確認してください".into());
+    }
+    Ok(candidate)
+}
+
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct World {
+    pub id: String,
+    pub url: String,
+    pub name: String,
+    pub author: String,
+    pub description: String,
+    pub platforms: Vec<String>,
+    pub capacity: Option<u64>,
+    pub tags: Vec<String>,
+    pub fetched_at: i64,
+    pub source: String,
+}
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Notes {
+    pub summary: String,
+    pub scenery: String,
+    pub sound: String,
+    pub activities: String,
+    pub highlights: String,
+    pub concerns: String,
+    pub recommended: String,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Review {
+    #[serde(default = "review_kind")]
+    pub kind: String,
+    pub schema_version: u32,
+    pub id: String,
+    pub revision: i64,
+    pub world: World,
+    pub visited_at: String,
+    pub environment: String,
+    pub notes: Notes,
+    pub title: String,
+    pub body: String,
+    pub categories: Vec<String>,
+    pub include_metadata: bool,
+    pub status: String,
+    pub edit_url: String,
+    pub public_url: String,
+    pub preview_url: String,
+    pub target_blog: String,
+    pub updated_at: i64,
+}
+fn review_kind() -> String {
+    "world-review".into()
+}
+impl Review {
+    pub fn validate(&self) -> AppResult<()> {
+        if self.schema_version != 1
+            || !valid_id(&self.id)
+            || self.revision < 0
+            || self.revision >= i64::MAX - 1
+        {
+            return Err("レビューの形式が不正です".into());
+        }
+        if !matches!(self.kind.as_str(), "world-review" | "article")
+            || (self.kind == "article" && (self.include_metadata || !self.world.id.is_empty()))
+        {
+            return Err("記事種別とワールド情報が一致しません".into());
+        }
+        if !self.world.id.is_empty() && world_id(&self.world.id)? != self.world.id {
+            return Err("ワールドIDが不正です".into());
+        }
+        if self.world.name.len() > 1000
+            || self.world.author.len() > 1000
+            || self.world.description.len() > 32000
+            || self.title.len() > 1000
+            || self.body.len() > 200_000
+            || serde_json::to_vec(&self.notes)
+                .map_err(|e| e.to_string())?
+                .len()
+                > 100_000
+            || self.categories.len() > 20
+            || self.categories.iter().any(|s| s.len() > 100)
+        {
+            return Err("入力内容が大きすぎます".into());
+        }
+        if self.visited_at.len() != 10
+            || !self.visited_at.bytes().enumerate().all(|(i, b)| {
+                if i == 4 || i == 7 {
+                    b == b'-'
+                } else {
+                    b.is_ascii_digit()
+                }
+            })
+        {
+            return Err("訪問日を入力してください".into());
+        }
+        Ok(())
+    }
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Photo {
+    pub id: String,
+    pub review_id: String,
+    pub name: String,
+    pub caption: String,
+    pub mime: String,
+    pub data_url: String,
+    pub position: i64,
+    pub bytes: usize,
+}
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Summary {
+    pub id: String,
+    pub title: String,
+    pub world_name: String,
+    pub visited_at: String,
+    pub status: String,
+    pub updated_at: i64,
+    pub photo_count: i64,
+}
+
+pub fn md_escape(s: &str) -> String {
+    s.chars()
+        .flat_map(|c| {
+            if "\\`*_{}[]<>()#+-.!|".contains(c) {
+                vec!['\\', c]
+            } else {
+                vec![c]
+            }
+        })
+        .collect::<String>()
+        .replace('\n', " ")
+        .replace('\r', " ")
+}
+pub fn article_source(r: &Review, photos: &[Photo], remote: bool) -> AppResult<String> {
+    let mut text = String::new();
+    if r.include_metadata {
+        text.push_str(&format!("## ワールドの基本情報\n\n- ワールド：{}\n- 作者：{}\n- ワールドURL：https://vrchat.com/home/world/{}\n- 訪問日：{}\n- 訪問環境：{}\n- 対応環境：{}\n\n",md_escape(&r.world.name),if r.world.author.is_empty(){"未確認".into()}else{md_escape(&r.world.author)},r.world.id,r.visited_at,md_escape(&r.environment),if r.world.platforms.is_empty(){"未確認".into()}else{r.world.platforms.iter().map(|s|md_escape(s)).collect::<Vec<_>>().join(" / ")}));
+    }
+    text.push_str(&r.body);
+    for p in photos {
+        let marker = format!("{{{{photo:{}}}}}", p.id);
+        if text.contains(&marker) {
+            if remote {
+                return Err("写真の公開URLがまだ設定されていません".into());
+            }
+            text = text.replace(
+                &marker,
+                &format!("![{}]({})", md_escape(&p.caption), p.data_url),
+            );
+        }
+    }
+    if text.contains("{{photo:") {
+        return Err("記事内に参照できない写真があります。写真を再挿入してください".into());
+    }
+    Ok(text)
+}

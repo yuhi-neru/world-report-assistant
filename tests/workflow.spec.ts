@@ -1,0 +1,313 @@
+import { test, expect, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
+const world = {
+  id: "wrld_2f16901a-457b-4312-b745-6582dfe4700e",
+  url: "https://vrchat.com/home/world/wrld_2f16901a-457b-4312-b745-6582dfe4700e",
+  name: "雨の図書室（検証用）",
+  author: "検証用の作者",
+  description: "これは画面検証用のワールド情報です。",
+  platforms: [],
+  capacity: null,
+  tags: ["chill", "library"],
+  fetchedAt: 1234,
+  source: "検証用データ",
+};
+async function setup(page: Page, delay = 0) {
+  await page.addInitScript(
+    ({ world, delay }) => {
+      const w = window as any;
+      w.isTauri = true;
+      w.__calls = [];
+      const records = new Map<string, any>(),
+        photos = new Map<string, any[]>();
+      let settings = {
+        hatenaId: "test",
+        blogId: "example.hatenablog.com",
+        hasBlogKey: true,
+        hasPhotoKey: true,
+        markdownConfirmed: true,
+        apiContact: "",
+        vrchatSaved: false,
+      };
+      const list = () =>
+        [...records.values()].map((r) => ({
+          id: r.id,
+          title: r.title,
+          worldName: r.world.name,
+          visitedAt: r.visitedAt,
+          status: r.status,
+          updatedAt: r.updatedAt,
+          photoCount: photos.get(r.id)?.length || 0,
+        }));
+      w.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener: () => {} };
+      w.__TAURI_INTERNALS__ = {
+        metadata: { currentWindow: { label: "main" } },
+        transformCallback: () => 1,
+        invoke: async (cmd: string, args: any) => {
+          if (cmd !== "command") return 1;
+          const { action, payload: p } = args;
+          w.__calls.push({ action, payload: JSON.parse(JSON.stringify(p)) });
+          if (action === "bootstrap")
+            return {
+              settings,
+              workspace: "C:\\Code\\world-review-assistant\\workspace",
+              reviews: list(),
+              version: "0.1.0",
+            };
+          if (action === "list")
+            return list().filter(
+              (r) => !p.query || JSON.stringify(r).includes(p.query),
+            );
+          if (action === "save") {
+            if (delay) await new Promise((r) => setTimeout(r, delay));
+            const old = records.get(p.review.id);
+            if (old && old.revision !== p.review.revision)
+              throw "版が競合しました";
+            const r = {
+              ...p.review,
+              revision: (old?.revision || 0) + 1,
+              updatedAt: Date.now(),
+            };
+            records.set(r.id, r);
+            return r;
+          }
+          if (action === "read")
+            return {
+              review: records.get(p.id),
+              photos: photos.get(p.id) || [],
+            };
+          if (action === "fetch-world") {
+            if (!p.url.startsWith("https://vrchat.com/"))
+              throw "VRChat公式のワールドURLを入力してください";
+            return world;
+          }
+          if (action === "identify-world")
+            return { ...world, name: "", author: "", source: "手入力" };
+          if (action === "add-photo") {
+            const photo = {
+              id: crypto.randomUUID(),
+              reviewId: p.id,
+              name: p.name,
+              caption: "",
+              mime: "image/jpeg",
+              dataUrl: p.dataUrl,
+              position: 0,
+              bytes: 512,
+            };
+            photos.set(p.id, [...(photos.get(p.id) || []), photo]);
+            return photo;
+          }
+          if (action === "caption") {
+            for (const x of photos.get(p.reviewId) || [])
+              if (x.id === p.id) x.caption = p.caption;
+            return {};
+          }
+          if (action === "remove-photo") {
+            photos.set(
+              p.reviewId,
+              (photos.get(p.reviewId) || []).filter((x) => x.id !== p.id),
+            );
+            return {};
+          }
+          if (action === "prepare-codex")
+            return {
+              path: `C:\\Code\\world-review-assistant\\workspace\\reviews\\${p.id}`,
+              prompt: `workspace/reviews/${p.id}/request.md を読んで記事を作成してください。`,
+            };
+          if (action === "import-article") {
+            const r = records.get(p.id);
+            const photo = (photos.get(p.id) || [])[0];
+            const next = {
+              ...r,
+              title: "雨音を聞きながら過ごす図書室",
+              body: `## 窓際でひと休み\n\n雨音を聞きながら、静かな時間を過ごしました。\n\n${photo ? "{{photo:" + photo.id + "}}" : ""}\n\nこの一文は添削で削ります。`,
+              revision: r.revision + 1,
+            };
+            records.set(p.id, next);
+            return next;
+          }
+          if (action === "publish") {
+            const r = records.get(p.id);
+            if (w.__failPublish) {
+              const next = { ...r, status: "publish-unknown" };
+              records.set(p.id, next);
+              throw "投稿結果を確認できませんでした";
+            }
+            const next = {
+              ...r,
+              status: p.draft ? "remote-draft" : "published",
+              editUrl:
+                "https://blog.hatena.ne.jp/test/example.hatenablog.com/atom/entry/123",
+              publicUrl: "https://example.hatenablog.com/entry/test",
+              targetBlog:
+                "https://blog.hatena.ne.jp/test/example.hatenablog.com/atom/entry",
+            };
+            records.set(p.id, next);
+            return next;
+          }
+          if (action === "reconcile") {
+            const r = { ...records.get(p.id), status: "published" };
+            records.set(p.id, r);
+            return r;
+          }
+          if (action === "save-settings") {
+            settings = {
+              ...settings,
+              ...p,
+              hasBlogKey: !!p.blogKey || settings.hasBlogKey,
+              hasPhotoKey: !!p.photoKey || settings.hasPhotoKey,
+            };
+            return settings;
+          }
+          return {};
+        },
+      };
+    },
+    { world, delay },
+  );
+  await page.goto("/");
+}
+test("メモ・写真・Codex取り込み・添削・投稿まで進められる", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.getByLabel("ワールドURL", { exact: true }).fill(world.url);
+  await page.getByRole("button", { name: "情報を取得", exact: true }).click();
+  await expect(page.getByLabel("ワールド名", { exact: true })).toHaveValue(
+    world.name,
+  );
+  await page
+    .getByLabel("ひとことでいうと")
+    .fill("・雨音が心地よかった\n・窓際でのんびり過ごした");
+  await page
+    .getByLabel("音・音楽", { exact: true })
+    .fill("・小さな雨音が聞こえた");
+  await page.locator("input[type=file]").setInputFiles({
+    name: "test.png",
+    mimeType: "image/png",
+    buffer: readFileSync(
+      new URL("../src-tauri/icons/icon.png", import.meta.url),
+    ),
+  });
+  await expect(page.getByRole("img", { name: "撮影写真 1" })).toBeVisible();
+  await page.getByLabel("写真1の説明").fill("窓際の写真");
+  await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
+  await expect(page.getByLabel("Codexへの依頼文")).toBeVisible();
+  await page
+    .getByRole("button", { name: "記事を取り込む", exact: true })
+    .click();
+  await expect(page.getByLabel("記事タイトル", { exact: true })).toHaveValue(
+    "雨音を聞きながら過ごす図書室",
+  );
+  await page
+    .getByLabel("記事本文", { exact: true })
+    .fill("## 窓際でひと休み\n\n自分で添削した本文だけです。");
+  await page
+    .getByLabel("記事タイトル", { exact: true })
+    .fill("添削後のタイトル");
+  await page.getByRole("button", { name: "はてなへ投稿", exact: true }).click();
+  await page
+    .getByRole("button", { name: "この内容で公開する", exact: true })
+    .click();
+  await expect(
+    page.getByText("記事を公開しました。", { exact: true }),
+  ).toBeVisible();
+  const sent = await page.evaluate(() => (window as any).__calls);
+  const publish = sent.findLast((c: any) => c.action === "publish");
+  const save = sent.findLast((c: any) => c.action === "save");
+  expect(publish.payload.revision).toBe(save.payload.review.revision + 1);
+  expect(save.payload.review.body).toContain("自分で添削した本文だけ");
+  expect(save.payload.review.body).not.toContain("この一文は添削で削ります");
+  expect(save.payload.review.title).toBe("添削後のタイトル");
+});
+test("保存中に追記しても最新のメモを失わない", async ({ page }) => {
+  await setup(page, 400);
+  const memo = page.getByLabel("ひとことでいうと");
+  await memo.fill("最初のメモ");
+  await page.waitForTimeout(1000);
+  await memo.fill("最初のメモに追加した最新のメモ");
+  await expect(page.getByText("保存済み", { exact: true })).toBeVisible();
+  await expect(memo).toHaveValue("最初のメモに追加した最新のメモ");
+  const saves = await page.evaluate(() =>
+    (window as any).__calls.filter((c: any) => c.action === "save"),
+  );
+  expect(saves.at(-1).payload.review.notes.summary).toBe(
+    "最初のメモに追加した最新のメモ",
+  );
+});
+test("投稿結果が不明な場合は再送せず確認に誘導する", async ({ page }) => {
+  await setup(page);
+  await page.getByLabel("ワールドURL", { exact: true }).fill(world.url);
+  await page.getByRole("button", { name: "情報を取得", exact: true }).click();
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page.getByLabel("記事タイトル", { exact: true }).fill("テスト");
+  await page.getByLabel("記事本文", { exact: true }).fill("添削済み");
+  await page.evaluate(() => {
+    (window as any).__failPublish = true;
+  });
+  await page.getByRole("button", { name: "はてなへ投稿", exact: true }).click();
+  await page
+    .getByRole("button", { name: "この内容で公開する", exact: true })
+    .click();
+  await page.getByRole("button", { name: "戻る", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "投稿結果を確認", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "はてなへ投稿", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByRole("button", { name: "投稿結果を確認", exact: true })
+    .click();
+  await expect(
+    page.getByText("投稿結果を確認できました。", { exact: true }),
+  ).toBeVisible();
+});
+test("不正URLでは取得結果を埋めない", async ({ page }) => {
+  await setup(page);
+  await page
+    .getByLabel("ワールドURL", { exact: true })
+    .fill("https://evil.example/");
+  await page.getByRole("button", { name: "情報を取得", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("公式");
+  await expect(page.getByLabel("ワールド名", { exact: true })).toHaveValue("");
+});
+test("記事のプレビューがスクリプトを実行しない", async ({ page }) => {
+  await setup(page);
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page
+    .getByLabel("記事本文", { exact: true })
+    .fill(
+      '<script>window.pwned=1</script><img src=x onerror="window.pwned=2"><iframe src="https://evil.example/"></iframe>',
+    );
+  await expect(page.locator(".prose script")).toHaveCount(0);
+  await expect(page.locator(".prose iframe")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).pwned)).toBeUndefined();
+});
+test("設定にはブログURLが初期設定され秘密情報は伏字になる", async ({
+  page,
+}) => {
+  await setup(page);
+  await page
+    .getByRole("button", { name: "設定・ブログ連携", exact: true })
+    .click();
+  await expect(page.getByLabel("ブログID", { exact: true })).toHaveValue(
+    "example.hatenablog.com",
+  );
+  await expect(
+    page.getByLabel("ブログAPIキー", { exact: false }),
+  ).toHaveAttribute("type", "password");
+  await expect(
+    page.getByText("追加のAI API契約・キーは不要です。", { exact: false }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "閉じる", exact: true })
+    .last()
+    .click();
+});
+test("空の初期画面と記事画面のスクリーンショット", async ({ page }) => {
+  await setup(page);
+  await page.screenshot({ path: "artifacts/app-notes.png", fullPage: true });
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page.screenshot({ path: "artifacts/app-editor.png", fullPage: true });
+});

@@ -1,0 +1,36 @@
+{
+  "name": "world-review-assistant",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "test": "npm run test:native && npm run test:browser",
+    "test:browser": "playwright test",
+    "test:native": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "desktop": "tauri dev",
+    "bundle": "tauri build",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "dompurify": "3.3.1",
+    "lucide-react": "0.577.0",
+    "marked": "17.0.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@tauri-apps/cli": "2.10.1",
+    "@types/node": "24.19.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "5.1.4",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "4.1.11"
+  }
+}

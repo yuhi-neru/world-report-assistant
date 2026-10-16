@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "Local application commands and closing after saving",
+  "windows": ["main"],
+  "permissions": ["core:default", "core:window:allow-destroy"]
+}
