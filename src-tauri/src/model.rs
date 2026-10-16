@@ -98,6 +98,13 @@ pub struct Notes {
 }
 #[derive(Clone, Default, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
+pub struct ArticleMaterial {
+    pub visit_context: String,
+    pub focus: String,
+    pub omit: String,
+}
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Brief {
     pub what: String,
     pub who: String,
@@ -155,6 +162,8 @@ pub struct Review {
     #[serde(default)]
     pub experience: Experience,
     #[serde(default)]
+    pub article_material: ArticleMaterial,
+    #[serde(default)]
     pub sharing: Sharing,
     pub title: String,
     pub body: String,
@@ -207,6 +216,10 @@ impl Review {
                 .map_err(|e| e.to_string())?
                 .len()
                 > 32_000
+            || serde_json::to_vec(&self.article_material)
+                .map_err(|e| e.to_string())?
+                .len()
+                > 24_000
             || self.sharing.opening.len() > 16_000
             || self.sharing.tweet.len() > 10_000
             || self.sharing.hashtag.chars().count() > 60

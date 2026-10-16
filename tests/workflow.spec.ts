@@ -191,10 +191,10 @@ test("メモ・写真・Codex取り込み・添削・投稿まで進められる
     world.name,
   );
   await page
-    .getByLabel("ひとことでいうと")
+    .getByLabel("体験した順序・遊び方", { exact: true })
     .fill("・雨音が心地よかった\n・窓際でのんびり過ごした");
   await page
-    .getByLabel("音・音楽", { exact: true })
+    .getByLabel("音・音楽・演出の補足", { exact: true })
     .fill("・小さな雨音が聞こえた");
   await page.locator("input[type=file]").setInputFiles({
     name: "test.png",
@@ -236,7 +236,7 @@ test("メモ・写真・Codex取り込み・添削・投稿まで進められる
 });
 test("保存中に追記しても最新のメモを失わない", async ({ page }) => {
   await setup(page, 400);
-  const memo = page.getByLabel("ひとことでいうと");
+  const memo = page.getByLabel("体験した順序・遊び方", { exact: true });
   await memo.fill("最初のメモ");
   await page.waitForTimeout(1000);
   await memo.fill("最初のメモに追加した最新のメモ");
@@ -245,7 +245,7 @@ test("保存中に追記しても最新のメモを失わない", async ({ page 
   const saves = await page.evaluate(() =>
     (window as any).__calls.filter((c: any) => c.action === "save"),
   );
-  expect(saves.at(-1).payload.review.notes.summary).toBe(
+  expect(saves.at(-1).payload.review.notes.activities).toBe(
     "最初のメモに追加した最新のメモ",
   );
 });
@@ -334,13 +334,13 @@ test("外観の切替で入力を保ち、再起動後も選択を保存しWindo
   const appearance = page.getByRole("combobox", { name: "画面のテーマ" });
   await expect(appearance).toHaveValue("dark");
   await page
-    .getByLabel("ひとことでいうと")
+    .getByLabel("体験した順序・遊び方", { exact: true })
     .fill("外観を変えてもこのメモを残す");
   await appearance.selectOption("light");
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await expect(page.getByLabel("ひとことでいうと")).toHaveValue(
-    "外観を変えてもこのメモを残す",
-  );
+  await expect(
+    page.getByLabel("体験した順序・遊び方", { exact: true }),
+  ).toHaveValue("外観を変えてもこのメモを残す");
   await page.reload();
   await expect(appearance).toHaveValue("light");
   await appearance.selectOption("system");
@@ -622,4 +622,63 @@ test("旧4項目と添削済み文章を保ったままSARを追加保存でき�
   expect(saved.experience.scene).toBe("雨が降る夜の図書室");
   expect(saved.experience.result).toBe("");
   expect(saved.sharing.tweet).toBe(legacy.sharing!.tweet);
+});
+
+test("本文の材料と記事化希望を保存し、SAR・旧メモ・添削文を保つ", async ({
+  page,
+}) => {
+  const legacy = newReview();
+  legacy.world = world;
+  legacy.revision = 1;
+  legacy.notes.summary = "以前のひとことメモ";
+  legacy.notes.recommended = "以前のおすすめメモ";
+  legacy.body = "添削済みの本文。";
+  legacy.experience!.scene = "雨が降る夜の図書室";
+  delete legacy.articleMaterial;
+  await setup(page, 400, [], legacy);
+  await page.getByRole("button", { name: /雨の図書室（検証用）/ }).click();
+  await page.getByRole("tab", { name: "メモと写真" }).click();
+  await expect(
+    page.getByRole("heading", { name: "はてな記事の材料" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("記事全体で伝えたいこと", { exact: true }),
+  ).toHaveValue(legacy.notes.summary);
+  await expect(
+    page.getByLabel("楽しみ方・向いていそうな人", { exact: true }),
+  ).toHaveValue(legacy.notes.recommended);
+  await page
+    .getByLabel("体験した順序・遊び方", { exact: true })
+    .fill("入口から窓際へ移動し、席に座った。");
+  await page
+    .getByLabel("一緒に訪れた人数・訪問時の補足", { exact: true })
+    .fill("一人で訪問");
+  await page
+    .getByLabel("記事で重点を置くこと", { exact: true })
+    .fill("散策の順序を中心に");
+  await page.waitForTimeout(1000);
+  await page
+    .getByLabel("記事に含めないこと", { exact: true })
+    .fill("同行者の名前と仕掛けの結末");
+  await expect(page.getByText("保存済み", { exact: true })).toBeVisible();
+  const saved = await page.evaluate(
+    () =>
+      (window as any).__calls.filter((x: any) => x.action === "save").at(-1)
+        .payload.review,
+  );
+  expect(saved.articleMaterial).toEqual({
+    visitContext: "一人で訪問",
+    focus: "散策の順序を中心に",
+    omit: "同行者の名前と仕掛けの結末",
+  });
+  expect(saved.notes.summary).toBe(legacy.notes.summary);
+  expect(saved.notes.recommended).toBe(legacy.notes.recommended);
+  expect(saved.notes.activities).toContain("窓際");
+  expect(saved.experience.scene).toBe(legacy.experience!.scene);
+  expect(saved.body).toBe(legacy.body);
+  await page
+    .locator(".article-material-card")
+    .screenshot({ path: "artifacts/app-article-material.png" });
+  await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
+  await expect(page.getByLabel("Codexへの依頼文")).toBeVisible();
 });

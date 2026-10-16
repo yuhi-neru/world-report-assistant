@@ -94,12 +94,21 @@ try {
     .getByLabel("Result すると何を体験できる？")
     .fill("配置した目印を見られる");
   await page
-    .getByLabel("ひとことでいうと")
+    .getByLabel("体験した順序・遊び方", { exact: true })
     .fill("これは実際の訪問記録ではなく、保存と取り込みの動作確認用です。");
   await page
     .locator("input[type=file]")
     .setInputFiles(path.join(project, "src-tauri/icons/icon.png"));
   await page.getByRole("img", { name: "撮影写真 1", exact: true }).waitFor();
+  await page
+    .getByLabel("一緒に訪れた人数・訪問時の補足", { exact: true })
+    .fill("一人で訪問");
+  await page
+    .getByLabel("記事で重点を置くこと", { exact: true })
+    .fill("体験の順序を中心に");
+  await page
+    .getByLabel("記事に含めないこと", { exact: true })
+    .fill("仕掛けの結末");
   await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
   await page.getByLabel("Codexへの依頼文").waitFor();
   let list = await invoke("list");
@@ -109,6 +118,7 @@ try {
     await readFile(path.join(dataRoot, "reviews", id, "input.json"), "utf8"),
   );
   assert.equal(packet.photos.length, 1);
+  assert.equal(packet.review.articleMaterial.omit, "仕掛けの結末");
   assert.equal(
     packet.review.experience.scene,
     "入力と保存を確かめる検証用の空間",
@@ -175,7 +185,9 @@ try {
     fullPage: true,
   });
   const closeNote = "閉じる直前のメモも保存されることを確認しました。";
-  await page.getByLabel("ひとことでいうと").fill(closeNote);
+  await page
+    .getByLabel("体験した順序・遊び方", { exact: true })
+    .fill(closeNote);
   const exited = new Promise((resolve) => app.once("exit", resolve));
   const closing = spawnSync(
     "powershell.exe",
@@ -206,7 +218,11 @@ try {
     env: { ...process.env, WORLD_REVIEW_HOME: dataRoot },
   });
   assert.equal(reopened.status, 0, reopened.stderr);
-  assert.equal(JSON.parse(reopened.stdout).review.notes.summary, closeNote);
+  assert.equal(JSON.parse(reopened.stdout).review.notes.activities, closeNote);
+  assert.equal(
+    JSON.parse(reopened.stdout).review.articleMaterial.focus,
+    "体験の順序を中心に",
+  );
   const report = {
     nativeWebView2: true,
     sqlitePersistence: true,
@@ -216,6 +232,7 @@ try {
     openingAndTweetImport: true,
     tweetIncludesWorldNameUrlAndTwoTags: true,
     editedArticleSaved: true,
+    articleMaterialExport: true,
     backupCreated: true,
     nativeCloseSavedDraft: true,
     liveMetadata,

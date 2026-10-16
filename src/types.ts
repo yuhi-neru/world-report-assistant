@@ -19,6 +19,16 @@ export interface Notes {
   concerns: string;
   recommended: string;
 }
+export interface ArticleMaterial {
+  visitContext: string;
+  focus: string;
+  omit: string;
+}
+export const emptyArticleMaterial = (): ArticleMaterial => ({
+  visitContext: "",
+  focus: "",
+  omit: "",
+});
 export interface Brief {
   what: string;
   who: string;
@@ -64,6 +74,7 @@ export interface Review {
   notes: Notes;
   brief?: Brief;
   experience?: Experience;
+  articleMaterial?: ArticleMaterial;
   sharing?: Sharing;
   title: string;
   body: string;
@@ -143,6 +154,7 @@ export function newReview(): Review {
     },
     brief: emptyBrief(),
     experience: emptyExperience(),
+    articleMaterial: emptyArticleMaterial(),
     sharing: emptySharing(),
     title: "",
     body: "",
@@ -166,6 +178,7 @@ export function editKey(r: Review): string {
     r.notes,
     r.brief,
     r.experience,
+    r.articleMaterial,
     r.sharing,
     r.title,
     r.body,

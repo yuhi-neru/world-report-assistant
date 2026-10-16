@@ -40,7 +40,6 @@ import {
   newReview,
   statusLabel,
   type Boot,
-  type Notes,
   type Photo,
   type Review,
   type Summary,
@@ -49,6 +48,7 @@ import {
 } from "./types";
 import SettingsModal from "./Settings";
 import { ExperienceCard, CopyCard } from "./WritingCards";
+import { ArticleNotesCard } from "./ArticleNotesCard";
 import {
   readAppearance,
   saveAppearance,
@@ -57,49 +57,6 @@ import {
 } from "./appearance";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-export const noteFields: {
-  key: keyof Notes;
-  label: string;
-  placeholder: string;
-  wide?: boolean;
-}[] = [
-  {
-    key: "summary",
-    label: "ひとことでいうと",
-    placeholder: "例：雨音を聞きながら、のんびり過ごせる小さな喫茶店",
-    wide: true,
-  },
-  {
-    key: "scenery",
-    label: "景色・空間",
-    placeholder: "・窓の外に海が見える\n・夕方の光がきれい",
-  },
-  {
-    key: "sound",
-    label: "音・音楽",
-    placeholder: "・静かなピアノのBGM\n・窓際では雨音が聞こえる",
-  },
-  {
-    key: "activities",
-    label: "できること",
-    placeholder: "・友達と雑談\n・窓際の席で撮影",
-  },
-  {
-    key: "highlights",
-    label: "よかったところ",
-    placeholder: "・照明が柔らかく、写真を撮りやすかった",
-  },
-  {
-    key: "concerns",
-    label: "気になったところ",
-    placeholder: "・実際に気づいたことだけ。なければ空欄でOK",
-  },
-  {
-    key: "recommended",
-    label: "どんな人におすすめ？",
-    placeholder: "・二人でゆっくり話したい人\n・落ち着いた写真を撮りたい人",
-  },
-];
 export function Button({
   children,
   icon: Icon,
@@ -516,7 +473,6 @@ export default function App() {
     void run("リンクを開いています", async () => {
       await command("open-external", { url });
     });
-  const noteCount = Object.values(draft.notes).filter((s) => s.trim()).length;
 
   return (
     <div
@@ -930,67 +886,11 @@ export default function App() {
                     update((r) => ({ ...r, experience }))
                   }
                 />
-                <section className="card notes-card">
-                  <div className="section-heading">
-                    <div className="section-icon">
-                      <PencilLine size={18} />
-                    </div>
-                    <div>
-                      <h2>体験メモ</h2>
-                      <p>
-                        短い箇条書きで大丈夫。あなたが感じたことを、そのまま。
-                      </p>
-                    </div>
-                    <span className="count-label">{noteCount} / 7</span>
-                  </div>
-                  <div className="visit-row">
-                    <label>
-                      訪問日
-                      <input
-                        type="date"
-                        value={draft.visitedAt}
-                        onChange={(e) =>
-                          update((r) => ({ ...r, visitedAt: e.target.value }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      訪問環境
-                      <select
-                        value={draft.environment}
-                        onChange={(e) =>
-                          update((r) => ({ ...r, environment: e.target.value }))
-                        }
-                      >
-                        <option>PC VR</option>
-                        <option>デスクトップ</option>
-                        <option>スタンドアロン / Quest</option>
-                        <option>その他</option>
-                      </select>
-                    </label>
-                  </div>
-                  <div className="notes-grid">
-                    {noteFields.map((f) => (
-                      <label className={f.wide ? "full" : ""} key={f.key}>
-                        {f.label}
-                        {f.key === "summary" && (
-                          <small>まずは、ひとつだけでも</small>
-                        )}
-                        <textarea
-                          rows={f.wide ? 2 : 3}
-                          value={draft.notes[f.key]}
-                          placeholder={f.placeholder}
-                          onChange={(e) =>
-                            update((r) => ({
-                              ...r,
-                              notes: { ...r.notes, [f.key]: e.target.value },
-                            }))
-                          }
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </section>
+                <ArticleNotesCard
+                  key={draft.id}
+                  report={draft}
+                  onChange={update}
+                />
                 <section className="card photos-card">
                   <div className="section-heading">
                     <div className="section-icon">
@@ -999,7 +899,7 @@ export default function App() {
                     <div>
                       <h2>撮影した写真</h2>
                       <p>
-                        ドラッグ＆ドロップ、またはコピーした画像を貼り付け。
+                        ドラッグ＆ドロップ、または画像を貼り付け。各写真に、場所や体験・本文で触れたい点を添えられます。
                       </p>
                     </div>
                     <span className="count-label">{photos.length} / 20</span>
@@ -1056,7 +956,7 @@ export default function App() {
                           </div>
                           <input
                             aria-label={`写真${i + 1}の説明`}
-                            placeholder="写真のひとこと（任意）"
+                            placeholder="写っている場所・この場面で体験したこと（任意）"
                             defaultValue={p.caption}
                             onBlur={(e) => {
                               if (e.target.value !== p.caption) {

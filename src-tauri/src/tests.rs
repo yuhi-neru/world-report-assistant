@@ -519,3 +519,49 @@ fn sar_only_material_roundtrip_and_changed_result_invalidates_generated_copy() {
         edited.sharing.tweet
     );
 }
+
+#[test]
+fn article_material_preferences_roundtrip_and_changes_block_stale_import() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let mut r = review();
+    assert!(r.article_material.omit.is_empty());
+    r.article_material = ArticleMaterial {
+        visit_context: "一人で訪問".into(),
+        focus: "散策の順序を中心に".into(),
+        omit: "仕掛けの結末".into(),
+    };
+    let old_summary = r.notes.summary.clone();
+    let r = store::save(&mut db, r, "article-material").unwrap();
+    assert_eq!(
+        store::get(&db, &r.id).unwrap().article_material.focus,
+        "散策の順序を中心に"
+    );
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    let input: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+    assert_eq!(input["review"]["articleMaterial"]["omit"], "仕掛けの結末");
+    let request = std::fs::read_to_string(dir.join("request.md")).unwrap();
+    assert!(request.contains("入力欄の順番や数をそのまま見出しにせず"));
+    assert!(request.contains("共有文へ漏らしたりしない"));
+    std::fs::write(dir.join("article.md"), "# 本文の確認\n\n窓際に座った。").unwrap();
+    let imported = workspace::import(tmp.path(), &mut db, &r.id).unwrap();
+    assert_eq!(imported.notes.summary, old_summary);
+    assert_eq!(imported.article_material.visit_context, "一人で訪問");
+    for field in ["focus", "omit", "context"] {
+        workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+        std::fs::write(dir.join("article.md"), "# Stale\n\nStale").unwrap();
+        let mut changed = store::get(&db, &r.id).unwrap();
+        match field {
+            "focus" => changed.article_material.focus.push_str("追記"),
+            "omit" => changed.article_material.omit.push_str("追記"),
+            _ => changed.article_material.visit_context.push_str("追記"),
+        }
+        store::save(&mut db, changed, "material-edit").unwrap();
+        assert!(workspace::import(tmp.path(), &mut db, &r.id)
+            .unwrap_err()
+            .contains("変更"));
+    }
+    assert_ne!(store::get(&db, &r.id).unwrap().title, "Stale");
+}
