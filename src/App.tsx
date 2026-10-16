@@ -29,6 +29,7 @@ import {
   Settings2,
   ShieldCheck,
   Sparkles,
+  SunMoon,
   Trash2,
   X,
 } from "lucide-react";
@@ -47,6 +48,12 @@ import {
   type Settings,
 } from "./types";
 import SettingsModal from "./Settings";
+import {
+  readAppearance,
+  saveAppearance,
+  watchAppearance,
+  type Appearance,
+} from "./appearance";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export const noteFields: {
@@ -157,6 +164,8 @@ export function Modal({
 }
 
 export default function App() {
+  const [appearance, setAppearance] = useState(readAppearance);
+  useEffect(() => watchAppearance(appearance), [appearance]);
   const initial = useRef(newReview());
   const [draft, setDraft] = useState(initial.current),
     [photos, setPhotos] = useState<Photo[]>([]),
@@ -591,6 +600,23 @@ export default function App() {
           )}
         </nav>
         <div className="sidebar-bottom">
+          <label className="theme-picker">
+            <SunMoon size={16} />
+            <span>外観</span>
+            <select
+              aria-label="画面のテーマ"
+              value={appearance}
+              onChange={(e) => {
+                const value = e.target.value as Appearance;
+                saveAppearance(value);
+                setAppearance(value);
+              }}
+            >
+              <option value="dark">ダーク</option>
+              <option value="light">ライト</option>
+              <option value="system">Windowsに合わせる</option>
+            </select>
+          </label>
           <div className="local-note">
             <ShieldCheck size={16} />
             <span>記録はこのPCに保存</span>

@@ -311,3 +311,56 @@ test("空の初期画面と記事画面のスクリーンショット", async ({
   await page.getByRole("tab", { name: "記事を整える" }).click();
   await page.screenshot({ path: "artifacts/app-editor.png", fullPage: true });
 });
+
+test("外観の切替で入力を保ち、再起動後も選択を保存しWindowsの配色に追従する", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "light" });
+  await setup(page);
+  const appearance = page.getByRole("combobox", { name: "画面のテーマ" });
+  await expect(appearance).toHaveValue("dark");
+  await page
+    .getByLabel("ひとことでいうと")
+    .fill("外観を変えてもこのメモを残す");
+  await appearance.selectOption("light");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.getByLabel("ひとことでいうと")).toHaveValue(
+    "外観を変えてもこのメモを残す",
+  );
+  await page.reload();
+  await expect(appearance).toHaveValue("light");
+  await appearance.selectOption("system");
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.reload();
+  await expect(appearance).toHaveValue("system");
+  await appearance.selectOption("dark");
+  await page.screenshot({
+    path: "artifacts/app-dark-notes.png",
+    fullPage: true,
+  });
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page.getByLabel("基本情報を記事の先頭に付ける").uncheck();
+  await page
+    .getByLabel("記事タイトル", { exact: true })
+    .fill("夜のワールドを、言葉に残す");
+  await page
+    .getByLabel("記事本文", { exact: true })
+    .fill(
+      "これはダークモードの表示確認用サンプルです。\n\n## 記憶を、ひとつずつ\n\n明朝体のタイトルと、読みやすい本文。はてなブログの静かな雰囲気を、暗い画面でも。\n\n> メモに残した言葉を、自分の記事へ。\n\n[テンプレートと使い方](https://github.com/yuhi-neru/world-report-assistant)\n\n| 項目 | 表示 |\n| --- | --- |\n| 見出し・引用 | 落ち着いた配色 |\n| 写真 | 元の色のまま |\n\n```text\nWorld Report Assistant\n``` ",
+    );
+  await expect(page.locator(".prose h2")).toBeVisible();
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({
+    path: "artifacts/app-dark-editor.png",
+    fullPage: true,
+  });
+  await page.getByRole("button", { name: "設定・ブログ連携" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.screenshot({
+    path: "artifacts/app-dark-settings.png",
+    fullPage: true,
+  });
+});
