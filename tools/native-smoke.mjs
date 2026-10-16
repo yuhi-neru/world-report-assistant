@@ -174,6 +174,37 @@ try {
     path: path.join(project, "artifacts/native-editor.png"),
     fullPage: true,
   });
+  const beforeTweet = (await invoke("read", { id })).review;
+  const articleBeforeTweet = await readFile(
+    path.join(dataRoot, "reviews", id, "article.md"),
+    "utf8",
+  );
+  await page.getByLabel("作成するもの", { exact: true }).selectOption("tweet");
+  await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
+  await page.getByLabel("Codexへの依頼文").waitFor();
+  await writeFile(
+    path.join(dataRoot, "reviews", id, "tweet.json"),
+    JSON.stringify({
+      tweet: "検証用の部屋。\n部屋の中を歩く。\n配置した目印を見られる。",
+    }),
+    "utf8",
+  );
+  await page
+    .getByRole("button", { name: "ツイートを取り込む", exact: true })
+    .click();
+  await page
+    .getByText("ツイートだけを取り込みました。記事と冒頭文はそのままです。", {
+      exact: true,
+    })
+    .waitFor();
+  const afterTweet = (await invoke("read", { id })).review;
+  assert.equal(afterTweet.body, beforeTweet.body);
+  assert.equal(afterTweet.title, beforeTweet.title);
+  assert.equal(afterTweet.sharing.opening, beforeTweet.sharing.opening);
+  assert.equal(
+    await readFile(path.join(dataRoot, "reviews", id, "article.md"), "utf8"),
+    articleBeforeTweet,
+  );
   const backup = await invoke("backup");
   assert(
     (await readFile(backup.path)).subarray(0, 15).toString() ===
@@ -233,6 +264,7 @@ try {
     tweetIncludesWorldNameUrlAndTwoTags: true,
     editedArticleSaved: true,
     articleMaterialExport: true,
+    tweetOnlyImportPreservesArticleAndOpening: true,
     backupCreated: true,
     nativeCloseSavedDraft: true,
     liveMetadata,

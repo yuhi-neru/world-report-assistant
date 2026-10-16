@@ -396,11 +396,14 @@ export default function App() {
       await refresh();
       notify(`${added}枚の写真を保存しました。`);
     });
+  const [generationMode, setGenerationMode] = useState<"article" | "tweet">(
+    "article",
+  );
   const prepare = () =>
     void run("Codex用の素材をまとめています", async () => {
       await persist();
       const p = await command<{ path: string; prompt: string }>(
-        "prepare-codex",
+        generationMode === "tweet" ? "prepare-tweet" : "prepare-codex",
         { id: current.current.id },
       );
       setPacket(p);
@@ -414,17 +417,29 @@ export default function App() {
       }
     });
   const importArticle = () =>
-    void run("記事を取り込んでいます", async () => {
-      await persist();
-      const r = await command<Review>("import-article", {
-        id: current.current.id,
-      });
-      accept(r);
-      setTab("article");
-      setPacket(null);
-      await refresh();
-      notify("記事・冒頭文・ツイートを取り込みました。自由に添削できます。");
-    });
+    void run(
+      generationMode === "tweet"
+        ? "ツイートを取り込んでいます"
+        : "記事を取り込んでいます",
+      async () => {
+        await persist();
+        const r = await command<Review>(
+          generationMode === "tweet" ? "import-tweet" : "import-article",
+          {
+            id: current.current.id,
+          },
+        );
+        accept(r);
+        setTab("article");
+        setPacket(null);
+        await refresh();
+        notify(
+          generationMode === "tweet"
+            ? "ツイートだけを取り込みました。記事と冒頭文はそのままです。"
+            : "記事・冒頭文・ツイートを取り込みました。自由に添削できます。",
+        );
+      },
+    );
   const insertPhoto = (p: Photo) => {
     const r = current.current,
       marker = `\n\n{{photo:${p.id}}}\n\n`,
@@ -695,15 +710,32 @@ export default function App() {
             </button>
           </div>
           <div className="toolbar-buttons">
+            <label className="generation-choice">
+              作成するもの
+              <select
+                aria-label="作成するもの"
+                value={generationMode}
+                disabled={!!busy || pending}
+                onChange={(e) => {
+                  setGenerationMode(e.target.value as "article" | "tweet");
+                  setPacket(null);
+                }}
+              >
+                <option value="article">記事・冒頭文・ツイート</option>
+                <option value="tweet">ツイートだけ</option>
+              </select>
+            </label>
             <Button
               icon={ArrowDownToLine}
               variant="subtle"
               onClick={importArticle}
               disabled={!!busy || pending}
             >
-              記事を取り込む
+              {generationMode === "tweet"
+                ? "ツイートを取り込む"
+                : "記事を取り込む"}
             </Button>
-            {tab === "notes" ? (
+            {tab === "notes" || generationMode === "tweet" ? (
               <Button
                 icon={Sparkles}
                 variant="primary"
@@ -778,7 +810,11 @@ export default function App() {
               >
                 素材フォルダ
               </Button>
-              <small>記事ができたら「記事を取り込む」へ</small>
+              <small>
+                {generationMode === "tweet"
+                  ? "tweet.jsonができたら「ツイートを取り込む」へ"
+                  : "記事ができたら「記事を取り込む」へ"}
+              </small>
             </div>
           </section>
         )}
@@ -1106,6 +1142,7 @@ export default function App() {
           ) : (
             <div className="article-workspace">
               <CopyCard
+                tweetOnly={generationMode === "tweet"}
                 report={draft}
                 onChange={(sharing) => update((r) => ({ ...r, sharing }))}
                 notify={notify}

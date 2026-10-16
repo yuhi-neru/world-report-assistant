@@ -175,6 +175,12 @@ impl Engine {
                 self.settings.save(&self.root)?;
                 Ok(self.settings.public())
             }
+            "prepare-tweet" => workspace::prepare_tweet(&self.root, &self.db, string("id")),
+            "import-tweet" => Ok(json!(workspace::import_tweet(
+                &self.root,
+                &mut self.db,
+                string("id")
+            )?)),
             "prepare-codex" => workspace::prepare(&self.root, &self.db, string("id")),
             "import-article" => Ok(json!(workspace::import(
                 &self.root,
@@ -300,7 +306,7 @@ fn cli() -> bool {
         let id = args.get(3).map(String::as_str).unwrap_or("");
         if action == "help" {
             return Ok(
-                json!({"usage":["--cli list","--cli import-document ABSOLUTE_MD_PATH","--cli edit-document ABSOLUTE_MD_PATH ARTICLE_ID REVISION","--cli confirm-markdown true|false","--cli read REVIEW_ID","--cli prepare-codex REVIEW_ID","--cli import-article REVIEW_ID","--cli reconcile REVIEW_ID","--cli publish REVIEW_ID REVISION draft|public"],"workspace":root().to_string_lossy()}),
+                json!({"usage":["--cli list","--cli import-document ABSOLUTE_MD_PATH","--cli edit-document ABSOLUTE_MD_PATH ARTICLE_ID REVISION","--cli confirm-markdown true|false","--cli read REVIEW_ID","--cli prepare-codex REVIEW_ID","--cli prepare-tweet REVIEW_ID","--cli import-tweet REVIEW_ID","--cli import-article REVIEW_ID","--cli reconcile REVIEW_ID","--cli publish REVIEW_ID REVISION draft|public"],"workspace":root().to_string_lossy()}),
             );
         }
         if !matches!(
@@ -313,6 +319,8 @@ fn cli() -> bool {
                 | "edit-document"
                 | "import-document"
                 | "confirm-markdown"
+                | "prepare-tweet"
+                | "import-tweet"
                 | "prepare-codex"
                 | "import-article"
                 | "reconcile"

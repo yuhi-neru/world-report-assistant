@@ -565,3 +565,100 @@ fn article_material_preferences_roundtrip_and_changes_block_stale_import() {
     }
     assert_ne!(store::get(&db, &r.id).unwrap().title, "Stale");
 }
+
+#[test]
+fn tweet_only_uses_existing_body_preserves_article_files_and_imports_no_opening() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let mut r = review();
+    r.notes = Notes::default();
+    r.sharing.opening = "添削済みの冒頭".into();
+    r.sharing.include_opening = false;
+    let r = store::save(&mut db, r, "existing-article").unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("article.md"), "Keep this original article file").unwrap();
+    std::fs::write(dir.join("sharing.json"), "Keep this original sharing file").unwrap();
+    std::fs::write(dir.join("tweet.json"), "Old tweet output").unwrap();
+    workspace::prepare_tweet(tmp.path(), &db, &r.id).unwrap();
+    assert_eq!(
+        std::fs::read_to_string(dir.join("article.md")).unwrap(),
+        "Keep this original article file"
+    );
+    assert_eq!(
+        std::fs::read_to_string(dir.join("sharing.json")).unwrap(),
+        "Keep this original sharing file"
+    );
+    assert!(!dir.join("tweet.json").exists());
+    let input: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+    assert_eq!(input["generationMode"], "tweet-only");
+    assert_eq!(input["outputs"], json!({"tweet":"tweet.json"}));
+    assert_eq!(input["review"]["body"], r.body);
+    assert!(workspace::import(tmp.path(), &mut db, &r.id)
+        .unwrap_err()
+        .contains("ツイート専用"));
+    std::fs::write(
+        dir.join("tweet.json"),
+        r#"{"tweet":"新しいツイート本文。"}"#,
+    )
+    .unwrap();
+    let imported = workspace::import_tweet(tmp.path(), &mut db, &r.id).unwrap();
+    assert_eq!(imported.sharing.tweet, "新しいツイート本文。");
+    assert_eq!(imported.body, r.body);
+    assert_eq!(imported.title, r.title);
+    assert_eq!(imported.sharing.opening, r.sharing.opening);
+    assert_eq!(imported.sharing.include_opening, r.sharing.include_opening);
+    assert_eq!(
+        std::fs::read_to_string(dir.join("article.md")).unwrap(),
+        "Keep this original article file"
+    );
+}
+
+#[test]
+fn sar_only_tweet_needs_no_article_and_rejects_invalid_or_stale_outputs() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let mut r = review();
+    r.notes = Notes::default();
+    r.body.clear();
+    r.title.clear();
+    r.experience.scene = "雨の図書室".into();
+    let mut r = store::save(&mut db, r, "sar-only").unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    workspace::prepare_tweet(tmp.path(), &db, &r.id).unwrap();
+    assert!(!dir.join("article.md").exists());
+    assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id).is_err());
+    for invalid in [
+        "not json",
+        r#"{"tweet":""}"#,
+        r#"{"tweet":"x","opening":"unexpected"}"#,
+    ] {
+        std::fs::write(dir.join("tweet.json"), invalid).unwrap();
+        assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id).is_err());
+        assert_eq!(store::get(&db, &r.id).unwrap().revision, r.revision);
+    }
+    std::fs::write(dir.join("tweet.json"), r#"{"tweet":"雨の図書室。"}"#).unwrap();
+    r = workspace::import_tweet(tmp.path(), &mut db, &r.id).unwrap();
+    assert!(r.body.is_empty());
+    assert!(r.title.is_empty());
+    assert!(r.sharing.opening.is_empty());
+    for field in ["sar", "body", "tweet"] {
+        workspace::prepare_tweet(tmp.path(), &db, &r.id).unwrap();
+        std::fs::write(dir.join("tweet.json"), r#"{"tweet":"Old output"}"#).unwrap();
+        let mut changed = store::get(&db, &r.id).unwrap();
+        match field {
+            "sar" => changed.experience.action.push_str("散策"),
+            "body" => changed.body.push_str("添削した本文"),
+            _ => changed.sharing.tweet.push_str("添削"),
+        }
+        store::save(&mut db, changed, "manual").unwrap();
+        assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id)
+            .unwrap_err()
+            .contains("変更"));
+    }
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id)
+        .unwrap_err()
+        .contains("先に"));
+}

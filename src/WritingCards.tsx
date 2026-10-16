@@ -117,7 +117,9 @@ export function CopyCard({
   report,
   onChange,
   notify,
+  tweetOnly = false,
 }: {
+  tweetOnly?: boolean;
   report: Review;
   onChange: (value: Sharing) => void;
   notify: (text: string, error?: boolean) => void;
@@ -129,7 +131,7 @@ export function CopyCard({
   const fill = () => {
     onChange({
       ...sharing,
-      opening: sharing.opening || draft.opening,
+      opening: tweetOnly ? sharing.opening : sharing.opening || draft.opening,
       tweet: sharing.tweet || draft.tweet,
     });
     notify("空欄に体験の流れから雛形を入れました。読み直して整えてください。");

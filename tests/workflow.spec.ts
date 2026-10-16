@@ -123,6 +123,25 @@ async function setup(
             );
             return {};
           }
+          if (action === "prepare-tweet")
+            return {
+              path: `C:\\Code\\world-review-assistant\\workspace\\reviews\\${p.id}`,
+              prompt:
+                "request.mdを読んで、ツイートだけをtweet.jsonへ作成してください。記事・冒頭文は変更しません。",
+            };
+          if (action === "import-tweet") {
+            const r = records.get(p.id);
+            const next = {
+              ...r,
+              sharing: {
+                ...r.sharing,
+                tweet: "雨が降る夜の図書室。\n窓際に座る。\n雨音を聞ける。",
+              },
+              revision: r.revision + 1,
+            };
+            records.set(p.id, next);
+            return next;
+          }
           if (action === "prepare-codex")
             return {
               path: `C:\\Code\\world-review-assistant\\workspace\\reviews\\${p.id}`,
@@ -681,4 +700,56 @@ test("本文の材料と記事化希望を保存し、SAR・旧メモ・添削�
     .screenshot({ path: "artifacts/app-article-material.png" });
   await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
   await expect(page.getByLabel("Codexへの依頼文")).toBeVisible();
+});
+
+test("ツイートだけを依頼・取り込み、記事と冒頭文を変更しない", async ({
+  page,
+}) => {
+  const original = newReview();
+  original.world = world;
+  original.revision = 1;
+  original.title = "添削済みタイトル";
+  original.body = "添削済みの記事本文。";
+  original.sharing!.opening = "";
+  original.experience!.scene = "雨が降る夜の図書室";
+  await setup(page, 0, [], original);
+  await page.getByRole("button", { name: /雨の図書室（検証用）/ }).click();
+  await page.getByLabel("作成するもの", { exact: true }).selectOption("tweet");
+  await page
+    .getByRole("button", { name: "空欄に雛形を入れる", exact: true })
+    .click();
+  await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
+    "",
+  );
+  await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
+  await expect(page.getByLabel("Codexへの依頼文")).toHaveValue(
+    /ツイートだけ.*tweet.json/,
+  );
+  await page
+    .getByRole("button", { name: "ツイートを取り込む", exact: true })
+    .click();
+  await expect(page.getByLabel("記事タイトル", { exact: true })).toHaveValue(
+    original.title,
+  );
+  await expect(page.getByLabel("記事本文", { exact: true })).toHaveValue(
+    original.body,
+  );
+  await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
+    original.sharing!.opening,
+  );
+  await expect(page.getByLabel("ツイート本文", { exact: true })).toHaveValue(
+    /雨音を聞ける/,
+  );
+  const calls = await page.evaluate(() =>
+    (window as any).__calls.map((x: any) => x.action),
+  );
+  expect(calls).toContain("prepare-tweet");
+  expect(calls).toContain("import-tweet");
+  expect(calls).not.toContain("prepare-codex");
+  expect(calls).not.toContain("import-article");
+  expect(calls).not.toContain("publish");
+  await page.screenshot({
+    path: "artifacts/app-tweet-only.png",
+    fullPage: true,
+  });
 });

@@ -808,3 +808,21 @@ label small,
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.generation-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--muted);
+  min-width: 160px;
+}
+.generation-choice select {
+  font-size: 11px;
+  min-height: 32px;
+  padding: 5px 8px;
+}
+.toolbar-buttons {
+  flex-wrap: wrap;
+  align-items: center;
+}

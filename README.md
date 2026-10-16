@@ -12,7 +12,7 @@ VRChatのワールド情報、訪問メモ、撮影写真を残し、**このプ
 
 ## インストール
 
-[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.3.1-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
+[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.3.2-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
 
 コード署名はしていません。ビルド検証済みでも、別PCでのSmartScreen表示やクリーンWindows環境での動作は未検証です。
 
@@ -146,3 +146,14 @@ SARの下の「はてな記事の材料」は、紹介文を本文で掘り下�
 以前の「ひとことでいうと」「どんな人におすすめ？」は「記事の軸・おすすめの補足」に保存内容ごと残し、入力済みなら開いて表示します。既存の本文やSARを自動で書き換えません。
 
 同行人数などの訪問条件、「記事で重点を置くこと」「記事に含めないこと」も保存します。記事・冒頭文・ツイートをCodexで生成するときの編集希望として渡し、公開や外部送信の許可にはしません。希望の変更後は「Codexに渡す」から依頼し直します。
+
+
+## ツイートだけを作る
+
+[ツイート専用モードの画面例](docs/images/tweet-only.png)
+
+「作成するもの」で「ツイートだけ」を選び、「Codexに渡す」を押します。SARかメモを記入していれば、記事本文用フォームを埋める必要はありません。SAR・メモが空でも、保存済みの記事本文があれば材料にできます。記事タブでも依頼できます。
+
+コピーした依頼文をこのプロジェクトのCodexへ渡すと、tweet.jsonに {"tweet":"ツイート本文"} を作成します。記事や冒頭文、article.md・sharing.jsonは作り直しません。「ツイートを取り込む」でツイート欄だけを更新します。末尾のワールド名・URL・固定2タグ、対応環境、文字数チェックは共通です。アプリを開き直した場合も「ツイートだけ」を選んでから取り込んでください。
+
+CLIでは `--cli prepare-tweet REVIEW_ID` と `--cli import-tweet REVIEW_ID` を使えます。従来の `prepare-codex` / `import-article` は一括作成用として維持します。依頼後の素材・記事・ツイートの変更は古い出力の取り込みを止めます。ブログやXへは送信しません。
