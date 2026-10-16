@@ -12,7 +12,7 @@ VRChatのワールド情報、訪問メモ、撮影写真を残し、**このプ
 
 ## インストール
 
-[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.1.2-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
+[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.1.3-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
 
 コード署名はしていません。ビルド検証済みでも、別PCでのSmartScreen表示やクリーンWindows環境での動作は未検証です。
 
@@ -115,3 +115,7 @@ powershell -ExecutionPolicy Bypass -File tools/build-release.ps1
 MIT。配布物に含まれる依存ライブラリのライセンスは [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) に記載しています。
 
 開発版は `tools/start-dev.ps1` で起動します。Windows PowerShell 5.1でも日本語を読み込めるよう、起動スクリプトはUTF-8 BOM付きです。既存の記事は `--cli edit-document ABSOLUTE_MD_PATH ARTICLE_ID REVISION` で同じIDのまま本文を更新できます。公開は別途 `publish` で行います。
+
+## 画面テーマ
+
+はてなブログの [Smoothテーマ](https://yuhineru.hatenablog.com/) に合わせ、薄いグレーの背景・白い紙面・明朝体タイトル・緑のリンクで統一しています。記事プレビューも本文17px・行間1.85、見出し・引用・表を同じ雰囲気に揃えています。ブログのCSSは読み込まず、アプリ内のスタイルだけで表示します。埋め込みカードなどは投稿先で表示を確認してください。

@@ -1278,7 +1278,7 @@ export default function App() {
                     <FileText size={15} />
                     記事のプレビュー
                   </span>
-                  <small>ブログのテーマにより見た目は異なります</small>
+                  <small>Smooth風の表示 · 埋め込みは投稿先で確認</small>
                 </header>
                 <div className="article-paper">
                   <p className="paper-date">
