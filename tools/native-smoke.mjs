@@ -87,6 +87,9 @@ try {
     .fill("実アプリの保存検証用ワールド");
   await page.getByLabel("作者", { exact: true }).fill("検証用");
   await page
+    .getByLabel("What 何のワールド？")
+    .fill("入力と保存を確かめる検証用の空間");
+  await page
     .getByLabel("ひとことでいうと")
     .fill("これは実際の訪問記録ではなく、保存と取り込みの動作確認用です。");
   await page
@@ -102,10 +105,19 @@ try {
     await readFile(path.join(dataRoot, "reviews", id, "input.json"), "utf8"),
   );
   assert.equal(packet.photos.length, 1);
+  assert.equal(packet.review.brief.what, "入力と保存を確かめる検証用の空間");
   const article = `# WebView2実機検証の記事\n\n## 動作確認\n\nこれはテスト用の記事です。\n\n${packet.photos[0].marker}\n\nあとで削る一文。\n`;
   await writeFile(
     path.join(dataRoot, "reviews", id, "article.md"),
     article,
+    "utf8",
+  );
+  await writeFile(
+    path.join(dataRoot, "reviews", id, "sharing.json"),
+    JSON.stringify({
+      opening: "実アプリの冒頭文を確認しています。",
+      tweet: "保存検証用ワールドの紹介文です。",
+    }),
     "utf8",
   );
   await page
@@ -116,6 +128,19 @@ try {
     await page.getByLabel("記事タイトル", { exact: true }).inputValue(),
     "WebView2実機検証の記事",
   );
+  assert.equal(
+    await page.getByLabel("記事の冒頭文", { exact: true }).inputValue(),
+    "実アプリの冒頭文を確認しています。",
+  );
+  const tweetText = await page
+    .getByLabel("URL・タグ付きの完成文", { exact: true })
+    .inputValue();
+  assert(
+    tweetText.includes(
+      "https://vrchat.com/home/world/wrld_2f16901a-457b-4312-b745-6582dfe4700e",
+    ),
+  );
+  assert.equal((tweetText.match(/#/g) || []).length, 1);
   const body = await page.getByLabel("記事本文", { exact: true }).inputValue();
   await page
     .getByLabel("記事本文", { exact: true })
@@ -178,6 +203,9 @@ try {
     sqlitePersistence: true,
     codexPhotoExport: true,
     codexArticleImport: true,
+    fourPartBriefExport: true,
+    openingAndTweetImport: true,
+    tweetIncludesWorldUrlAndOneTag: true,
     editedArticleSaved: true,
     backupCreated: true,
     nativeCloseSavedDraft: true,

@@ -48,6 +48,7 @@ import {
   type Settings,
 } from "./types";
 import SettingsModal from "./Settings";
+import { BriefCard, CopyCard } from "./WritingCards";
 import {
   readAppearance,
   saveAppearance,
@@ -465,7 +466,7 @@ export default function App() {
       setTab("article");
       setPacket(null);
       await refresh();
-      notify("Codexの記事を取り込みました。自由に削ったり書き直せます。");
+      notify("記事・冒頭文・ツイートを取り込みました。自由に添削できます。");
     });
   const insertPhoto = (p: Photo) => {
     const r = current.current,
@@ -923,6 +924,10 @@ export default function App() {
                     </button>
                   </div>
                 </section>
+                <BriefCard
+                  report={draft}
+                  onChange={(brief) => update((r) => ({ ...r, brief }))}
+                />
                 <section className="card notes-card">
                   <div className="section-heading">
                     <div className="section-icon">
@@ -1197,154 +1202,165 @@ export default function App() {
               </aside>
             </div>
           ) : (
-            <div className="article-layout">
-              <section className="card editor-card">
-                <div className="section-heading">
-                  <div className="section-icon">
-                    <PencilLine size={18} />
-                  </div>
-                  <div>
-                    <h2>あなたの言葉に整える</h2>
-                    <p>
-                      削ったり、書き足したり。確定した文章をそのまま投稿します。
-                    </p>
-                  </div>
-                </div>
-                <label className="title-label">
-                  記事タイトル
-                  <input
-                    aria-label="記事タイトル"
-                    className="article-title"
-                    placeholder="この記事のタイトル"
-                    value={draft.title}
-                    onChange={(e) =>
-                      update((r) => ({ ...r, title: e.target.value }))
-                    }
-                  />
-                </label>
-                <label className="body-label">
-                  本文{" "}
-                  <small>Markdown · 写真の位置は {"{{photo:…}}"} で指定</small>
-                  <textarea
-                    ref={bodyInput}
-                    aria-label="記事本文"
-                    value={draft.body}
-                    onChange={(e) =>
-                      update((r) => ({ ...r, body: e.target.value }))
-                    }
-                    placeholder="Codexが作ったarticle.mdを取り込むか、ここに記事を貼り付けてください。"
-                  />
-                </label>
-                {photos.length > 0 && (
-                  <div className="photo-inserts">
-                    <span>写真を本文に挿入</span>
+            <div className="article-workspace">
+              <CopyCard
+                report={draft}
+                onChange={(sharing) => update((r) => ({ ...r, sharing }))}
+                notify={notify}
+              />
+              <div className="article-layout">
+                <section className="card editor-card">
+                  <div className="section-heading">
+                    <div className="section-icon">
+                      <PencilLine size={18} />
+                    </div>
                     <div>
-                      {photos.map((p, i) => (
-                        <button
-                          key={p.id}
-                          title={p.caption || p.name}
-                          onClick={() => insertPhoto(p)}
-                        >
-                          <img
-                            src={p.dataUrl}
-                            alt={p.caption || `写真${i + 1}`}
-                          />
-                          <Plus size={14} />
-                        </button>
-                      ))}
+                      <h2>あなたの言葉に整える</h2>
+                      <p>
+                        削ったり、書き足したり。確定した文章をそのまま投稿します。
+                      </p>
                     </div>
                   </div>
-                )}
-                <label className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={draft.includeMetadata}
-                    onChange={(e) =>
-                      update((r) => ({
-                        ...r,
-                        includeMetadata: e.target.checked,
-                      }))
-                    }
-                  />
-                  基本情報を記事の先頭に付ける
-                </label>
-                <label>
-                  カテゴリー
-                  <input
-                    aria-label="カテゴリー"
-                    value={draft.categories.join(", ")}
-                    onChange={(e) =>
-                      update((r) => ({
-                        ...r,
-                        categories: e.target.value
-                          .split(/[,、]/)
-                          .map((v) => v.trim())
-                          .filter(Boolean),
-                      }))
-                    }
-                    placeholder="VRChat, ワールド紹介"
-                  />
-                </label>
-                <div className="editor-bottom">
-                  <span>{draft.body.length.toLocaleString()}文字</span>
-                  {draft.publicUrl && (
-                    <button
-                      className="text-button"
-                      onClick={() => external(draft.publicUrl)}
-                    >
-                      公開記事を開く
-                      <ExternalLink size={13} />
-                    </button>
-                  )}
-                </div>
-              </section>
-              <section className="card preview-card">
-                <header>
-                  <span>
-                    <FileText size={15} />
-                    記事のプレビュー
-                  </span>
-                  <small>Smooth風の表示 · 埋め込みは投稿先で確認</small>
-                </header>
-                <div className="article-paper">
-                  <p className="paper-date">
-                    {draft.visitedAt} <span>WORLD REPORT</span>
-                  </p>
-                  <h1>{draft.title || "記事のタイトルがここに入ります"}</h1>
-                  {draft.body ? (
-                    <div
-                      className="prose"
-                      dangerouslySetInnerHTML={{
-                        __html: previewHtml(draft, photos),
-                      }}
-                      onClick={(e) => {
-                        const a = (e.target as HTMLElement).closest("a");
-                        if (a) {
-                          e.preventDefault();
-                          external(a.href);
-                        }
-                      }}
+                  <label className="title-label">
+                    記事タイトル
+                    <input
+                      aria-label="記事タイトル"
+                      className="article-title"
+                      placeholder="この記事のタイトル"
+                      value={draft.title}
+                      onChange={(e) =>
+                        update((r) => ({ ...r, title: e.target.value }))
+                      }
                     />
-                  ) : (
-                    <div className="empty-article">
-                      <FileText size={38} strokeWidth={1} />
-                      <h3>ここから、ひとつの記事に。</h3>
-                      <p>
-                        メモと写真をCodexに渡して、
-                        <br />
-                        できあがった記事を取り込んでください。
-                      </p>
-                      <Button
-                        icon={ArrowLeft}
-                        variant="subtle"
-                        onClick={() => setTab("notes")}
-                      >
-                        メモと写真に戻る
-                      </Button>
+                  </label>
+                  <label className="body-label">
+                    本文{" "}
+                    <small>
+                      Markdown · 写真の位置は {"{{photo:…}}"} で指定
+                    </small>
+                    <textarea
+                      ref={bodyInput}
+                      aria-label="記事本文"
+                      value={draft.body}
+                      onChange={(e) =>
+                        update((r) => ({ ...r, body: e.target.value }))
+                      }
+                      placeholder="Codexが作ったarticle.mdを取り込むか、ここに記事を貼り付けてください。"
+                    />
+                  </label>
+                  {photos.length > 0 && (
+                    <div className="photo-inserts">
+                      <span>写真を本文に挿入</span>
+                      <div>
+                        {photos.map((p, i) => (
+                          <button
+                            key={p.id}
+                            title={p.caption || p.name}
+                            onClick={() => insertPhoto(p)}
+                          >
+                            <img
+                              src={p.dataUrl}
+                              alt={p.caption || `写真${i + 1}`}
+                            />
+                            <Plus size={14} />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
-                </div>
-              </section>
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={draft.includeMetadata}
+                      onChange={(e) =>
+                        update((r) => ({
+                          ...r,
+                          includeMetadata: e.target.checked,
+                        }))
+                      }
+                    />
+                    基本情報を記事の先頭に付ける
+                  </label>
+                  <label>
+                    カテゴリー
+                    <input
+                      aria-label="カテゴリー"
+                      value={draft.categories.join(", ")}
+                      onChange={(e) =>
+                        update((r) => ({
+                          ...r,
+                          categories: e.target.value
+                            .split(/[,、]/)
+                            .map((v) => v.trim())
+                            .filter(Boolean),
+                        }))
+                      }
+                      placeholder="VRChat, ワールド紹介"
+                    />
+                  </label>
+                  <div className="editor-bottom">
+                    <span>{draft.body.length.toLocaleString()}文字</span>
+                    {draft.publicUrl && (
+                      <button
+                        className="text-button"
+                        onClick={() => external(draft.publicUrl)}
+                      >
+                        公開記事を開く
+                        <ExternalLink size={13} />
+                      </button>
+                    )}
+                  </div>
+                </section>
+                <section className="card preview-card">
+                  <header>
+                    <span>
+                      <FileText size={15} />
+                      記事のプレビュー
+                    </span>
+                    <small>Smooth風の表示 · 埋め込みは投稿先で確認</small>
+                  </header>
+                  <div className="article-paper">
+                    <p className="paper-date">
+                      {draft.visitedAt} <span>WORLD REPORT</span>
+                    </p>
+                    <h1>{draft.title || "記事のタイトルがここに入ります"}</h1>
+                    {draft.body ||
+                    (draft.sharing?.includeOpening &&
+                      draft.sharing.opening.trim()) ? (
+                      <div
+                        className="prose"
+                        dangerouslySetInnerHTML={{
+                          __html: previewHtml(draft, photos),
+                        }}
+                        onClick={(e) => {
+                          const a = (e.target as HTMLElement).closest("a");
+                          if (a) {
+                            e.preventDefault();
+                            external(a.href);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="empty-article">
+                        <FileText size={38} strokeWidth={1} />
+                        <h3>ここから、ひとつの記事に。</h3>
+                        <p>
+                          メモと写真をCodexに渡して、
+                          <br />
+                          できあがった記事を取り込んでください。
+                        </p>
+                        <Button
+                          icon={ArrowLeft}
+                          variant="subtle"
+                          onClick={() => setTab("notes")}
+                        >
+                          メモと写真に戻る
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              </div>
             </div>
           )}
         </fieldset>

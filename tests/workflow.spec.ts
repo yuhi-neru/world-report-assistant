@@ -1,3 +1,5 @@
+import { tweetResult, tweetTemplate } from "../src/communication";
+import { newReview } from "../src/types";
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 const world = {
@@ -361,6 +363,102 @@ test("外観の切替で入力を保ち、再起動後も選択を保存しWindo
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.screenshot({
     path: "artifacts/app-dark-settings.png",
+    fullPage: true,
+  });
+});
+
+test("ツイートはURLとタグ1つを付け、日本語・絵文字・URLの重みを数える", async () => {
+  const report = newReview();
+  report.world = { ...world, url: world.url + "?instanceId=private" };
+  report.sharing!.tweet = "あ";
+  let result = tweetResult(report);
+  expect(result.issues).toEqual([]);
+  expect(result.length).toBe(36);
+  expect(result.text).toContain(world.url);
+  expect(result.text).not.toContain("instanceId");
+  expect(result.text.match(/#VRChat/g)).toHaveLength(1);
+  report.sharing!.tweet = "👨‍👩‍👧‍👦";
+  expect(tweetResult(report).length).toBe(36);
+  report.sharing!.tweet = "あ".repeat(140);
+  expect(tweetResult(report).issues.join(" ")).toContain("上限");
+  report.sharing!.tweet = "短い本文 #余分なタグ";
+  expect(tweetResult(report).issues.join(" ")).toContain("本文内");
+  report.sharing!.tweet = "https://example.com/";
+  expect(tweetResult(report).issues.join(" ")).toContain("本文内");
+  report.sharing!.hashtag = "VRChat 別のタグ";
+  expect(tweetResult(report).issues.join(" ")).toContain("ハッシュタグを1つ");
+  report.sharing!.hashtag = "VRChat";
+  expect(tweetTemplate(report).match(/#/g)).toHaveLength(1);
+  expect(tweetTemplate(report)).toContain(world.url);
+});
+
+test("4つの視点から冒頭文とツイートを作り、必須URLとタグ付きでコピーする", async ({
+  page,
+}) => {
+  await setup(page);
+  await page.evaluate(() => {
+    (window as any).__copied = [];
+    Object.defineProperty(navigator, "clipboard", {
+      value: {
+        writeText: async (text: string) => {
+          (window as any).__copied.push(text);
+        },
+      },
+      configurable: true,
+    });
+  });
+  await page.getByLabel("ワールドURL", { exact: true }).fill(world.url);
+  await page.getByRole("button", { name: "情報を取得", exact: true }).click();
+  await page.getByLabel("What 何のワールド？").fill("雨音がする図書室");
+  await page.getByLabel("Who 誰向け？").fill("静かに読書したい人");
+  await page
+    .getByLabel("How 何ができる？")
+    .fill("窓際で雨音を聞きながら過ごせる");
+  await page.getByLabel("Why なぜおすすめ？").fill("静かな照明が落ち着く");
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page.getByRole("button", { name: "空欄に雛形を入れる" }).click();
+  await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
+    /雨音がする図書室.*静かに読書したい人.*窓際で雨音を聞きながら過ごせる.*静かな照明/,
+  );
+  await expect(page.locator(".prose")).toContainText("雨音がする図書室");
+  await page
+    .getByLabel("記事の冒頭文", { exact: true })
+    .fill("自分で添削した冒頭です。");
+  await page.getByRole("button", { name: "空欄に雛形を入れる" }).click();
+  await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
+    "自分で添削した冒頭です。",
+  );
+  await page
+    .getByRole("button", { name: "ツイート文をコピー", exact: true })
+    .click();
+  const copied = await page.evaluate(() => (window as any).__copied.at(-1));
+  expect(copied).toContain(world.url);
+  expect(copied.match(/#/g)).toHaveLength(1);
+  await page.getByLabel("ハッシュタグ（1つ）").fill("ワールド紹介");
+  await page.getByRole("button", { name: "ツイート雛形をコピー" }).click();
+  const template = await page.evaluate(() => (window as any).__copied.at(-1));
+  expect(template).toContain(world.url);
+  expect(template).toContain("#ワールド紹介");
+  expect(template.match(/#/g)).toHaveLength(1);
+  await page
+    .getByLabel("ツイート本文", { exact: true })
+    .fill("余分なタグ #extra");
+  await expect(
+    page.getByRole("button", { name: "ツイート文をコピー", exact: true }),
+  ).toBeDisabled();
+  await page
+    .getByLabel("ツイート本文", { exact: true })
+    .fill(
+      "「雨の図書室」雨音と静かな照明で落ち着ける場所。窓際で過ごせて、読書好きにおすすめ。",
+    );
+  await page
+    .getByLabel("記事本文", { exact: true })
+    .fill("## 訪問メモ\n\nこれは表示確認用のサンプルです。");
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const closeToast = page.getByRole("button", { name: "通知を閉じる" });
+  if (await closeToast.count()) await closeToast.click();
+  await page.screenshot({
+    path: "artifacts/app-writing-copy.png",
     fullPage: true,
   });
 });

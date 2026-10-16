@@ -365,3 +365,80 @@ fn document_edit_keeps_publication_identity_and_detects_stale_versions() {
     assert_eq!(next.title, "After");
     assert!(workspace::edit_document(tmp.path(), &mut db, &path, &r.id, r.revision).is_err());
 }
+
+#[test]
+fn four_part_brief_and_copy_roundtrip_preserves_tag_and_puts_opening_first() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let mut r = review();
+    assert_eq!(r.sharing.hashtag, "VRChat");
+    assert!(r.sharing.include_opening);
+    r.notes = Notes::default();
+    r.brief.what = "夜の庭園".into();
+    r.brief.who = "散歩が好きな人".into();
+    r.brief.how = "庭を歩ける".into();
+    r.brief.why = "花の照明がきれい".into();
+    r.sharing.hashtag = "ワールド紹介".into();
+    let r = store::save(&mut db, r, "brief").unwrap();
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    let input: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+    assert_eq!(input["review"]["brief"]["what"], "夜の庭園");
+    assert!(std::fs::read_to_string(dir.join("request.md"))
+        .unwrap()
+        .contains("sharing.json"));
+    std::fs::write(
+        dir.join("article.md"),
+        "# 庭園の記録\n\n## 訪問メモ\n\n庭を歩いた。",
+    )
+    .unwrap();
+    std::fs::write(dir.join("sharing.json"), r#"{"opening":"夜の庭園です。散歩が好きな人におすすめです。","tweet":"夜の庭園で散歩。花の照明がきれい。"}"#).unwrap();
+    let r = workspace::import(tmp.path(), &mut db, &r.id).unwrap();
+    assert_eq!(r.sharing.hashtag, "ワールド紹介");
+    let source = article_source(&r, &[], false).unwrap();
+    assert!(source.starts_with("夜の庭園です。"));
+    assert!(source.find("夜の庭園です。").unwrap() < source.find("ワールドの基本情報").unwrap());
+    assert_eq!(source.matches("夜の庭園です。").count(), 1);
+    assert!(!r.body.contains("夜の庭園です。"));
+    let tweet = std::fs::read_to_string(dir.join("tweet.txt")).unwrap();
+    assert!(tweet.contains(&format!("https://vrchat.com/home/world/{}", r.world.id)));
+    assert_eq!(tweet.matches('#').count(), 1);
+    assert!(tweet.contains("#ワールド紹介"));
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    assert!(!dir.join("sharing.json").exists());
+    assert!(std::fs::read_dir(&dir).unwrap().any(|e| e
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .starts_with("sharing.previous.")));
+}
+
+#[test]
+fn invalid_copy_cannot_partially_replace_an_article_and_manual_edits_block_stale_copy() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let r = store::save(&mut db, review(), "first").unwrap();
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    std::fs::write(dir.join("article.md"), "# New title\n\nNew body").unwrap();
+    std::fs::write(dir.join("sharing.json"), "not json").unwrap();
+    assert!(workspace::import(tmp.path(), &mut db, &r.id).is_err());
+    assert_eq!(store::get(&db, &r.id).unwrap().revision, r.revision);
+    assert_eq!(store::get(&db, &r.id).unwrap().title, r.title);
+    std::fs::write(
+        dir.join("sharing.json"),
+        r#"{"opening":"new opening","tweet":"new tweet"}"#,
+    )
+    .unwrap();
+    let mut edited = r.clone();
+    edited.sharing.tweet = "本人が添削したツイート".into();
+    let edited = store::save(&mut db, edited, "manual-copy").unwrap();
+    assert!(workspace::import(tmp.path(), &mut db, &r.id)
+        .unwrap_err()
+        .contains("変更"));
+    assert_eq!(
+        store::get(&db, &r.id).unwrap().sharing.tweet,
+        edited.sharing.tweet
+    );
+}

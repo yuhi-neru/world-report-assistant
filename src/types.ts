@@ -19,6 +19,30 @@ export interface Notes {
   concerns: string;
   recommended: string;
 }
+export interface Brief {
+  what: string;
+  who: string;
+  how: string;
+  why: string;
+}
+export interface Sharing {
+  opening: string;
+  tweet: string;
+  hashtag: string;
+  includeOpening: boolean;
+}
+export const emptyBrief = (): Brief => ({
+  what: "",
+  who: "",
+  how: "",
+  why: "",
+});
+export const emptySharing = (): Sharing => ({
+  opening: "",
+  tweet: "",
+  hashtag: "VRChat",
+  includeOpening: true,
+});
 export interface Review {
   kind?: "world-review" | "article";
   schemaVersion: 1;
@@ -28,6 +52,8 @@ export interface Review {
   visitedAt: string;
   environment: string;
   notes: Notes;
+  brief?: Brief;
+  sharing?: Sharing;
   title: string;
   body: string;
   categories: string[];
@@ -104,6 +130,8 @@ export function newReview(): Review {
       concerns: "",
       recommended: "",
     },
+    brief: emptyBrief(),
+    sharing: emptySharing(),
     title: "",
     body: "",
     categories: ["VRChat", "ワールド紹介"],
@@ -124,6 +152,8 @@ export function editKey(r: Review): string {
     r.visitedAt,
     r.environment,
     r.notes,
+    r.brief,
+    r.sharing,
     r.title,
     r.body,
     r.categories,

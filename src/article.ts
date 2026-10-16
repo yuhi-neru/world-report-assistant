@@ -7,7 +7,11 @@ export function articleSource(r: Review, photos: Photo[]): string {
   const metadata = r.includeMetadata
     ? `## ワールドの基本情報\n\n- ワールド：${escapeMd(r.world.name)}\n- 作者：${escapeMd(r.world.author || "未確認")}\n- ワールドURL：https://vrchat.com/home/world/${r.world.id}\n- 訪問日：${r.visitedAt}\n- 訪問環境：${escapeMd(r.environment)}\n- 対応環境：${r.world.platforms.map(escapeMd).join(" / ") || "未確認"}\n\n`
     : "";
-  let source = metadata + r.body;
+  const opening =
+    r.sharing?.includeOpening && r.sharing.opening.trim()
+      ? `${r.sharing.opening.trim()}\n\n`
+      : "";
+  let source = opening + metadata + r.body;
   for (const photo of photos)
     source = source.replaceAll(
       `{{photo:${photo.id}}}`,

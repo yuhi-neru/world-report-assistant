@@ -647,3 +647,98 @@ label small,
 .tab-dot {
   background: var(--muted);
 }
+
+.brief-card,
+.copy-card {
+  padding: 24px;
+}
+.brief-grid,
+.copy-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.brief-grid b {
+  display: inline-block;
+  width: 45px;
+  color: var(--theme-secondary);
+  font-weight: 500;
+}
+.brief-grid textarea,
+.copy-grid textarea {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.85;
+}
+.copy-card {
+  margin-bottom: 24px;
+}
+.copy-card > .section-heading {
+  align-items: flex-start;
+}
+.copy-card > .section-heading > .button {
+  margin-left: auto;
+  font-size: 11px;
+}
+.copy-grid > div {
+  min-width: 0;
+}
+.copy-grid .check-row {
+  margin: 12px 0;
+}
+.copy-grid label {
+  margin-bottom: 12px;
+}
+.copy-grid textarea[readonly] {
+  background: var(--bg);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.copy-hint {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.8;
+  margin: 10px 0;
+}
+.tweet-controls {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 15px;
+}
+.tweet-controls label {
+  max-width: 250px;
+}
+.tweet-count {
+  margin-bottom: 25px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tweet-count.over,
+.copy-issue {
+  color: #b95c49;
+}
+:root[data-theme="dark"] .tweet-count.over,
+:root[data-theme="dark"] .copy-issue {
+  color: #ffb7a5;
+}
+.copy-issue {
+  font-size: 11px;
+  margin: 12px 0;
+  line-height: 1.7;
+}
+.copy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 1200px) {
+  .copy-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .brief-card,
+  .copy-card {
+    padding: 19px;
+  }
+}

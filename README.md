@@ -6,13 +6,13 @@ VRChatのワールド情報、訪問メモ、撮影写真を残し、**このプ
 
 ## テンプレートと記録形式
 
-アプリを使わずに始められる [記入テンプレート](templates/world-report-v0.1.md) と、[なぜ項目を分けるか・入力例・保存項目の対応](docs/world-report-format.md) を公開しています。形式は試案 v0.1です。現時点でAI検索は実装していません。まずメモ・写真・記事をSQLiteに蓄積する道具です。
+アプリを使わずに始められる [記入テンプレート](templates/world-report-v0.2.md) と、[なぜ項目を分けるか・入力例・保存項目の対応](docs/world-report-format.md) を公開しています。形式は試案 v0.2です。現時点でAI検索は実装していません。まずメモ・写真・記事をSQLiteに蓄積する道具です。
 
 ![記録画面](docs/images/notes.png)
 
 ## インストール
 
-[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.1.4-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
+[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.2.0-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
 
 コード署名はしていません。ビルド検証済みでも、別PCでのSmartScreen表示やクリーンWindows環境での動作は未検証です。
 
@@ -121,3 +121,13 @@ MIT。配布物に含まれる依存ライブラリのライセンスは [THIRD_
 はてなブログの [Smoothテーマ](https://yuhineru.hatenablog.com/) に合わせ、薄いグレーの背景・白い紙面・明朝体タイトル・控えめな青みのグレーのアクセントで統一しています。記事プレビューも本文17px・行間1.85、見出し・引用・表を同じ雰囲気に揃えています。ブログのCSSは読み込まず、アプリ内のスタイルだけで表示します。埋め込みカードなどは投稿先で表示を確認してください。
 
 左下の「外観」でダーク・ライト・Windowsに合わせるを切り替えられます。初期表示はダークです。選択はこのWindowsユーザーのアプリ内に保存し、再起動後も引き継ぎます。Windowsに合わせる場合は、OSの配色変更にも追従します。写真自体や投稿する記事の内容・ブログ側のテーマは変えません。
+
+## 4つの視点から冒頭文・ツイートを作る
+
+1. ワールドURLを取得し、What（テーマ・世界観）・Who（楽しめる人）・How（体験・遊び方）・Why（魅力・特徴）を記入します。従来の体験メモだけでも始められます。
+2. 「記事を整える」の「空欄に雛形を入れる」で、入力を使った下書きを作れます。添削済みの欄は上書きしません。
+3. Codexで整えるときは「Codexに渡す」を押し、request.mdに従ってarticle.mdとsharing.jsonを作成してもらいます。「記事を取り込む」で両方を反映します。旧形式のarticle.mdだけでも取り込めます。
+4. 冒頭文とツイートを添削します。冒頭文は記事先頭へ付けられます。本文に同じ文章を二重に貼る必要はありません。
+5. ツイート本文にはURLとタグを書かず、「URL・タグ付きの完成文」を確認してコピーします。ワールド名、公開用ワールドURL、ハッシュタグ1つ（初期値 #VRChat）を使い、ハッシュタグは変更できます。「ツイート雛形をコピー」もURLと選択したタグ付きです。必要なら写真をX側で手動添付します。
+
+[通常のX投稿の文字数ルール](https://docs.x.com/fundamentals/counting-characters)に合わせ、公式twitter-textで280カウントの上限を確認します。日本語・絵文字は重み付きで数え、URLは23カウントです。文字数を超えたり、余分なURL・タグが入ったりした場合はコピーを止めて添削を促します。Xへの自動送信は行いません。

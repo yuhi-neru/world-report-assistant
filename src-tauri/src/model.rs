@@ -73,6 +73,32 @@ pub struct Notes {
     pub concerns: String,
     pub recommended: String,
 }
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Brief {
+    pub what: String,
+    pub who: String,
+    pub how: String,
+    pub why: String,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Sharing {
+    pub opening: String,
+    pub tweet: String,
+    pub hashtag: String,
+    pub include_opening: bool,
+}
+impl Default for Sharing {
+    fn default() -> Self {
+        Self {
+            opening: String::new(),
+            tweet: String::new(),
+            hashtag: "VRChat".into(),
+            include_opening: true,
+        }
+    }
+}
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Review {
@@ -85,6 +111,10 @@ pub struct Review {
     pub visited_at: String,
     pub environment: String,
     pub notes: Notes,
+    #[serde(default)]
+    pub brief: Brief,
+    #[serde(default)]
+    pub sharing: Sharing,
     pub title: String,
     pub body: String,
     pub categories: Vec<String>,
@@ -116,6 +146,9 @@ impl Review {
         if !self.world.id.is_empty() && world_id(&self.world.id)? != self.world.id {
             return Err("ワールドIDが不正です".into());
         }
+        if self.sharing.opening.contains("{{photo:") {
+            return Err("写真は冒頭文ではなく記事本文に挿入してください".into());
+        }
         if self.world.name.len() > 1000
             || self.world.author.len() > 1000
             || self.world.description.len() > 32000
@@ -125,6 +158,13 @@ impl Review {
                 .map_err(|e| e.to_string())?
                 .len()
                 > 100_000
+            || serde_json::to_vec(&self.brief)
+                .map_err(|e| e.to_string())?
+                .len()
+                > 32_000
+            || self.sharing.opening.len() > 16_000
+            || self.sharing.tweet.len() > 10_000
+            || self.sharing.hashtag.chars().count() > 60
             || self.categories.len() > 20
             || self.categories.iter().any(|s| s.len() > 100)
         {
@@ -183,6 +223,10 @@ pub fn md_escape(s: &str) -> String {
 }
 pub fn article_source(r: &Review, photos: &[Photo], remote: bool) -> AppResult<String> {
     let mut text = String::new();
+    if r.sharing.include_opening && !r.sharing.opening.trim().is_empty() {
+        text.push_str(r.sharing.opening.trim());
+        text.push_str("\n\n");
+    }
     if r.include_metadata {
         text.push_str(&format!("## ワールドの基本情報\n\n- ワールド：{}\n- 作者：{}\n- ワールドURL：https://vrchat.com/home/world/{}\n- 訪問日：{}\n- 訪問環境：{}\n- 対応環境：{}\n\n",md_escape(&r.world.name),if r.world.author.is_empty(){"未確認".into()}else{md_escape(&r.world.author)},r.world.id,r.visited_at,md_escape(&r.environment),if r.world.platforms.is_empty(){"未確認".into()}else{r.world.platforms.iter().map(|s|md_escape(s)).collect::<Vec<_>>().join(" / ")}));
     }
