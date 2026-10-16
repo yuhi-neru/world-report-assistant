@@ -9,6 +9,21 @@ export function worldUrl(r: Review): string {
     ? `https://vrchat.com/home/world/${r.world.id}`
     : "";
 }
+export function platformLine(r: Review): string {
+  const platforms = new Set(
+    r.world.platforms.map((p) => p.trim().toLowerCase()),
+  );
+  const pc = platforms.has("pc") || platforms.has("standalonewindows");
+  const android = platforms.has("android / quest") || platforms.has("android");
+  const ios = platforms.has("ios");
+  const labels = [
+    pc && "PC",
+    android && "Quest単機",
+    android && "スマホ(Android)",
+    ios && "スマホ(iOS)",
+  ].filter(Boolean);
+  return labels.length ? `対応：${labels.join(" / ")}` : "";
+}
 export function hashtagValue(value: string): string {
   return value.trim().replace(/^[#＃]/, "");
 }
@@ -40,7 +55,7 @@ export function draftCopy(r: Review): { opening: string; tweet: string } {
 }
 export function tweetTemplate(r: Review): string {
   const tag = hashtagValue((r.sharing ?? emptySharing()).hashtag);
-  return `「${r.world.name || "【ワールド名】"}」\n【What：テーマ・世界観】\n【Who：楽しめる人】におすすめ。\n【How：体験・遊び方】\n【Why：魅力・特徴】\n\n${worldUrl(r)}\n#${tag}`;
+  return `「${r.world.name || "【ワールド名】"}」\n【What：テーマ・世界観】\n【Who：楽しめる人】におすすめ。\n【How：体験・遊び方】\n【Why：魅力・特徴】\n\n${platformLine(r) ? platformLine(r) + "\n" : ""}${worldUrl(r)}\n#${tag}`;
 }
 export function tweetResult(r: Review): {
   text: string;
@@ -51,7 +66,9 @@ export function tweetResult(r: Review): {
   const body = sharing.tweet.trim();
   const url = worldUrl(r);
   const tag = hashtagValue(sharing.hashtag);
-  const text = [body, url, tag && `#${tag}`].filter(Boolean).join("\n\n");
+  const text = [body, platformLine(r), url, tag && `#${tag}`]
+    .filter(Boolean)
+    .join("\n\n");
   const parsed = parseTweet(text);
   const issues: string[] = [];
   if (!body) issues.push("ツイート本文を入力してください。");

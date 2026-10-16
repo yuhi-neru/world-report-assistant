@@ -28,8 +28,16 @@ pub fn mirror(root: &Path, r: &Review) -> AppResult<()> {
     )?;
     let tweet = if !r.world.id.is_empty() && !r.sharing.tweet.trim().is_empty() {
         format!(
-            "{}\n\nhttps://vrchat.com/home/world/{}\n#{}\n",
+            "{}{}\n\nhttps://vrchat.com/home/world/{}\n#{}\n",
             r.sharing.tweet.trim(),
+            {
+                let line = platform_line(&r.world.platforms);
+                if line.is_empty() {
+                    line
+                } else {
+                    format!("\n\n{line}")
+                }
+            },
             r.world.id,
             r.sharing.hashtag.trim().trim_start_matches('#')
         )
@@ -123,9 +131,10 @@ pub fn prepare(root: &Path, db: &Connection, id: &str) -> AppResult<Value> {
 - review.brief.what はテーマ・世界観、who は楽しめる人、how は体験・遊び方、why は魅力・特徴です。
 - この4項目と本人のメモを使い、自然な日本語で記事の冒頭文と短いツイート本文を作成してください。空欄を想像で埋めず、事実と感想を分けます。
 - 冒頭文は2〜4文を目安に、何のワールドか・誰向けか・何ができるか・なぜおすすめかを伝えます。4項目のラベルを列挙する文章にはしません。
-- ツイート本文にもワールド名と4つの視点を入れ、短くまとめます。日本語は概ね80字以内を目安に、URLとタグを付けた完成文がXの通常上限280カウント以内になるようにしてください。
+- ツイート本文にもワールド名と4つの視点を入れ、短くまとめます。日本語は概ね60字以内を目安に、対応環境・URL・タグを付けた完成文がXの通常上限280カウント以内になるようにしてください。
 - sharing.json を UTF-8 の JSON として作成してください。形式は {"opening":"冒頭文", "tweet":"ツイート本文"} です。コードフェンスや追加キーは不要です。
 - tweet は本文だけです。URLやハッシュタグはアプリがワールドURLと選択済みハッシュタグ1つを必ず付けるので、JSONのtweetにURLやハッシュタグを入れないでください。
+- 対応環境はreview.world.platformsからアプリが別途付けます。tweetに対応環境の一覧を重複させず、写真やメモから対応を推測しないでください。空配列は未確認であり非対応ではありません。
 - 冒頭文はアプリが記事の先頭へ付けるため、article.md へ同じ冒頭文を重複して入れないでください。タイトルと続きの本文を書いてください。
 - 添削済みの冒頭文・ツイートが入力にある場合、言い回しを尊重してください。再生成の指示がなければ不要に書き換えません。
 - 記事、冒頭文、ツイートの公開・外部投稿は、この依頼では許可されません。結果のファイル作成だけ行ってください。

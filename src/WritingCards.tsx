@@ -225,8 +225,7 @@ export function CopyCard({
             />
           </label>
           <p className="copy-hint">
-            ワールドURL +
-            ハッシュタグ1つを自動付与。文字数は日本語・絵文字・URLをXの規則で計算します。
+            取得できた対応環境・ワールドURL・ハッシュタグ1つを自動付与。スマホはAndroidとiOSを分けて表示します。文字数は対応環境も含めて計算します。
           </p>
           {result.issues.length > 0 && (
             <p className="copy-issue" role="status">

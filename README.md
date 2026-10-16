@@ -12,7 +12,7 @@ VRChatのワールド情報、訪問メモ、撮影写真を残し、**このプ
 
 ## インストール
 
-[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.2.0-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
+[GitHub Releases](https://github.com/yuhi-neru/world-report-assistant/releases/latest) から `WorldReportAssistant-Setup-0.2.1-win-x64.exe` をダウンロードして実行します。管理者権限不要のユーザー単位インストールです。Windows 10/11 x64、WebView2 Runtimeが必要です。Runtimeがない場合はインストーラーがMicrosoftから導入します。Node.js / Rust / Pythonは利用者には不要です。
 
 コード署名はしていません。ビルド検証済みでも、別PCでのSmartScreen表示やクリーンWindows環境での動作は未検証です。
 
@@ -128,6 +128,6 @@ MIT。配布物に含まれる依存ライブラリのライセンスは [THIRD_
 2. 「記事を整える」の「空欄に雛形を入れる」で、入力を使った下書きを作れます。添削済みの欄は上書きしません。
 3. Codexで整えるときは「Codexに渡す」を押し、request.mdに従ってarticle.mdとsharing.jsonを作成してもらいます。「記事を取り込む」で両方を反映します。旧形式のarticle.mdだけでも取り込めます。
 4. 冒頭文とツイートを添削します。冒頭文は記事先頭へ付けられます。本文に同じ文章を二重に貼る必要はありません。
-5. ツイート本文にはURLとタグを書かず、「URL・タグ付きの完成文」を確認してコピーします。ワールド名、公開用ワールドURL、ハッシュタグ1つ（初期値 #VRChat）を使い、ハッシュタグは変更できます。「ツイート雛形をコピー」もURLと選択したタグ付きです。必要なら写真をX側で手動添付します。
+5. ツイート本文にはURLとタグを書かず、「URL・タグ付きの完成文」を確認してコピーします。ワールド名、公開用ワールドURL、ハッシュタグ1つ（初期値 #VRChat）を使い、ハッシュタグは変更できます。「ツイート雛形をコピー」もURLと選択したタグ付きです。APIから対応環境を取得できた場合、PC・Quest単機・スマホ(Android/iOS)のうち確認できたものも自動で付き、文字数に含まれます。未取得なら対応環境の行を省略します。必要なら写真をX側で手動添付します。
 
 [通常のX投稿の文字数ルール](https://docs.x.com/fundamentals/counting-characters)に合わせ、公式twitter-textで280カウントの上限を確認します。日本語・絵文字は重み付きで数え、URLは23カウントです。文字数を超えたり、余分なURL・タグが入ったりした場合はコピーを止めて添削を促します。Xへの自動送信は行いません。

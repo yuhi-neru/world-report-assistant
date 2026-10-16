@@ -378,6 +378,7 @@ fn four_part_brief_and_copy_roundtrip_preserves_tag_and_puts_opening_first() {
     r.brief.who = "散歩が好きな人".into();
     r.brief.how = "庭を歩ける".into();
     r.brief.why = "花の照明がきれい".into();
+    r.world.platforms = vec!["PC".into(), "Android / Quest".into()];
     r.sharing.hashtag = "ワールド紹介".into();
     let r = store::save(&mut db, r, "brief").unwrap();
     workspace::prepare(tmp.path(), &db, &r.id).unwrap();
@@ -405,6 +406,8 @@ fn four_part_brief_and_copy_roundtrip_preserves_tag_and_puts_opening_first() {
     assert!(tweet.contains(&format!("https://vrchat.com/home/world/{}", r.world.id)));
     assert_eq!(tweet.matches('#').count(), 1);
     assert!(tweet.contains("#ワールド紹介"));
+    assert!(tweet.contains("対応：PC / Quest単機 / スマホ(Android)"));
+    assert!(!tweet.contains("iOS"));
     workspace::prepare(tmp.path(), &db, &r.id).unwrap();
     assert!(!dir.join("sharing.json").exists());
     assert!(std::fs::read_dir(&dir).unwrap().any(|e| e
@@ -441,4 +444,24 @@ fn invalid_copy_cannot_partially_replace_an_article_and_manual_edits_block_stale
         store::get(&db, &r.id).unwrap().sharing.tweet,
         edited.sharing.tweet
     );
+}
+
+#[test]
+fn platform_copy_lists_known_targets_without_inventing_unsupported_devices() {
+    for (values, expected) in [
+        (vec![], ""),
+        (vec!["unknown"], ""),
+        (vec!["PC"], "対応：PC"),
+        (vec!["Android / Quest"], "対応：Quest単機 / スマホ(Android)"),
+        (vec!["ios"], "対応：スマホ(iOS)"),
+        (
+            vec!["standalonewindows", "android", "iOS", "Android / Quest"],
+            "対応：PC / Quest単機 / スマホ(Android) / スマホ(iOS)",
+        ),
+    ] {
+        assert_eq!(
+            platform_line(&values.into_iter().map(String::from).collect::<Vec<_>>()),
+            expected
+        );
+    }
 }

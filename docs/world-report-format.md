@@ -44,7 +44,7 @@
 
 ## バージョンと保存
 
-人が記入するテンプレートの版は **v0.2**、アプリの内部保存形式は **schemaVersion: 1**。これらは別のバージョンです。今回のアプリ配布版は **v0.2.0** です。
+人が記入するテンプレートの版は **v0.2**、アプリの内部保存形式は **schemaVersion: 1**。これらは別のバージョンです。今回のアプリ配布版は **v0.2.1** です。
 
 SQLiteが原本です。Codexにはinput.json・request.md・写真を渡し、article.mdを取り込みます。review.jsonとedited.mdは保存内容の控えです。内部JSONを直接編集してもSQLには反映しません。既存の個人データやAPIキーはGitHubへ公開しません。
 
@@ -61,3 +61,8 @@ Codexはarticle.mdとsharing.jsonを作成します。sharing.jsonは {"opening"
 edited-sharing.jsonとtweet.txtは添削内容の控えです。tweet.txtは草稿の控えなので、使う前にツールの文字数・タグの検証を確認してください。Xへはアプリから自動投稿せず、文章をコピーして自分で投稿します。
 
 旧データには空のbriefとsharingの初期値を補い、既存のメモ・本文・投稿先を維持します。Codexへの依頼後に4つの視点や冒頭文・ツイートを編集した場合、古い出力の取り込みを止めます。依頼し直すとarticle.mdとsharing.jsonは両方とも退避します。
+
+
+APIのunityPackagesから取得したworld.platformsに応じて、完成ツイート・コピー用雛形・tweet.txtに「対応：PC / Quest単機 / スマホ(Android) / スマホ(iOS)」のうち確認できた環境だけを追加します。Android / Quest（android）はQuest単機とAndroidスマホ、iOSはiOSスマホ、PC（standalonewindows）はPCに対応します。旧保存済みの表記も利用できます。未取得・未知の値は表示せず、「PCのみ」「非対応」とは判定しません。iOS向けパッケージがない場合のAndroid版フォールバックからiOS対応を推定しません。対応表示も文字数制限に含めます。
+
+参考：[VRChatの対応プラットフォーム](https://creators.vrchat.com/platforms/)

@@ -62,6 +62,29 @@ pub struct World {
     pub fetched_at: i64,
     pub source: String,
 }
+pub fn platform_line(platforms: &[String]) -> String {
+    let has = |name: &str| {
+        platforms
+            .iter()
+            .any(|p| p.trim().eq_ignore_ascii_case(name))
+    };
+    let android = has("Android / Quest") || has("android");
+    let mut labels = Vec::new();
+    if has("PC") || has("standalonewindows") {
+        labels.push("PC");
+    }
+    if android {
+        labels.extend(["Quest単機", "スマホ(Android)"]);
+    }
+    if has("iOS") {
+        labels.push("スマホ(iOS)");
+    }
+    if labels.is_empty() {
+        String::new()
+    } else {
+        format!("対応：{}", labels.join(" / "))
+    }
+}
 #[derive(Clone, Default, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Notes {

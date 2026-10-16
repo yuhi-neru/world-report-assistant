@@ -1,4 +1,4 @@
-import { tweetResult, tweetTemplate } from "../src/communication";
+import { platformLine, tweetResult, tweetTemplate } from "../src/communication";
 import { newReview } from "../src/types";
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -14,7 +14,7 @@ const world = {
   fetchedAt: 1234,
   source: "検証用データ",
 };
-async function setup(page: Page, delay = 0) {
+async function setup(page: Page, delay = 0, platforms: string[] = []) {
   await page.addInitScript(
     ({ world, delay }) => {
       const w = window as any;
@@ -165,7 +165,7 @@ async function setup(page: Page, delay = 0) {
         },
       };
     },
-    { world, delay },
+    { world: { ...world, platforms }, delay },
   );
   await page.goto("/");
 }
@@ -461,4 +461,59 @@ test("4つの視点から冒頭文とツイートを作り、必須URLとタグ�
     path: "artifacts/app-writing-copy.png",
     fullPage: true,
   });
+});
+
+test("APIで確認できた対応環境だけをツイートと雛形へ付ける", async () => {
+  const report = newReview();
+  report.world = { ...world, platforms: [] };
+  report.sharing!.tweet = "静かな図書室。";
+  const before = tweetResult(report).length;
+  for (const [platforms, line] of [
+    [[], ""],
+    [["unknown"], ""],
+    [["PC"], "対応：PC"],
+    [["Android / Quest"], "対応：Quest単機 / スマホ(Android)"],
+    [["iOS"], "対応：スマホ(iOS)"],
+    [
+      ["standalonewindows", "android", "ios", "Android / Quest"],
+      "対応：PC / Quest単機 / スマホ(Android) / スマホ(iOS)",
+    ],
+  ] as [string[], string][]) {
+    report.world.platforms = platforms;
+    expect(platformLine(report)).toBe(line);
+    const result = tweetResult(report);
+    expect(result.issues).toEqual([]);
+    expect(result.text.match(/#/g)).toHaveLength(1);
+    expect(result.text).toContain(world.url);
+    if (line) {
+      expect(result.text).toContain(line);
+      expect(tweetTemplate(report)).toContain(line);
+      expect(result.length).toBeGreaterThan(before);
+    } else {
+      expect(result.text).not.toContain("対応：");
+      expect(tweetTemplate(report)).not.toContain("対応：");
+    }
+  }
+  report.sharing!.tweet = "あ".repeat(110);
+  expect(tweetResult(report).issues.join(" ")).toContain("上限");
+});
+
+test("APIのAndroid情報をQuest単機とAndroidスマホとして完成文へ表示する", async ({
+  page,
+}) => {
+  await setup(page, 0, ["PC", "Android / Quest"]);
+  await page.getByLabel("ワールドURL", { exact: true }).fill(world.url);
+  await page.getByRole("button", { name: "情報を取得", exact: true }).click();
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page
+    .getByLabel("ツイート本文", { exact: true })
+    .fill("静かな図書室。読書好きにおすすめ。");
+  const result = page.getByLabel("URL・タグ付きの完成文");
+  await expect(result).toHaveValue(
+    /対応：PC \/ Quest単機 \/ スマホ\(Android\)/,
+  );
+  await expect(result).not.toHaveValue(/iOS/);
+  await expect(
+    page.getByRole("button", { name: "ツイート文をコピー", exact: true }),
+  ).toBeEnabled();
 });
