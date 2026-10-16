@@ -367,7 +367,7 @@ fn document_edit_keeps_publication_identity_and_detects_stale_versions() {
 }
 
 #[test]
-fn four_part_brief_and_copy_roundtrip_preserves_tag_and_puts_opening_first() {
+fn legacy_brief_and_copy_roundtrip_preserves_input_and_puts_opening_first() {
     let tmp = tempfile::tempdir().unwrap();
     let mut db = store::open(tmp.path()).unwrap();
     let mut r = review();
@@ -404,8 +404,12 @@ fn four_part_brief_and_copy_roundtrip_preserves_tag_and_puts_opening_first() {
     assert!(!r.body.contains("夜の庭園です。"));
     let tweet = std::fs::read_to_string(dir.join("tweet.txt")).unwrap();
     assert!(tweet.contains(&format!("https://vrchat.com/home/world/{}", r.world.id)));
-    assert_eq!(tweet.matches('#').count(), 1);
-    assert!(tweet.contains("#ワールド紹介"));
+    assert_eq!(tweet.matches('#').count(), 2);
+    assert!(tweet.ends_with("#VRchat #VRChatワールド紹介\n"));
+    assert!(!tweet.contains("#ワールド紹介"));
+    assert!(tweet.contains("World：雨の図書室"));
+    assert_eq!(r.brief.why, "花の照明がきれい");
+    assert!(r.experience.result.is_empty());
     assert!(tweet.contains("対応：PC / Quest単機 / スマホ(Android)"));
     assert!(!tweet.contains("iOS"));
     workspace::prepare(tmp.path(), &db, &r.id).unwrap();
@@ -464,4 +468,54 @@ fn platform_copy_lists_known_targets_without_inventing_unsupported_devices() {
             expected
         );
     }
+}
+
+#[test]
+fn sar_only_material_roundtrip_and_changed_result_invalidates_generated_copy() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let mut r = review();
+    assert!(r.experience.scene.is_empty()); // Pre-SAR JSON remains readable.
+    r.notes = Notes::default();
+    r.experience = Experience {
+        scene: "夜の喫茶店".into(),
+        action: "窓際に座る".into(),
+        result: "雨音を聞ける".into(),
+    };
+    let r = store::save(&mut db, r, "sar").unwrap();
+    assert_eq!(
+        store::get(&db, &r.id).unwrap().experience.result,
+        "雨音を聞ける"
+    );
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    let input: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+    assert_eq!(input["review"]["experience"]["action"], "窓際に座る");
+    assert_eq!(input["communication"]["framework"], "SAR-v1");
+    assert!(input["communication"]["footer"]
+        .as_str()
+        .unwrap()
+        .ends_with(TWEET_TAGS));
+    let request = std::fs::read_to_string(dir.join("request.md")).unwrap();
+    assert!(request.contains("原則3行"));
+    assert!(request.contains("3行にするための体験を捏造しません"));
+    std::fs::write(dir.join("article.md"), "# 喫茶店の記録\n\n窓際に座った。").unwrap();
+    std::fs::write(dir.join("sharing.json"), r#"{"opening":"夜の喫茶店で窓際に座り、雨音を聞けます。","tweet":"夜の喫茶店。\n窓際に座る。\n雨音を聞ける。"}"#).unwrap();
+    let imported = workspace::import(tmp.path(), &mut db, &r.id).unwrap();
+    assert_eq!(imported.sharing.tweet.lines().count(), 3);
+    assert_eq!(imported.experience.result, "雨音を聞ける");
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    std::fs::write(dir.join("article.md"), "# Stale\n\nStale").unwrap();
+    let mut edited = imported;
+    edited.experience.result = "雨音は未確認".into();
+    let edited = store::save(&mut db, edited, "sar-edit").unwrap();
+    assert!(workspace::import(tmp.path(), &mut db, &r.id)
+        .unwrap_err()
+        .contains("変更"));
+    assert_ne!(store::get(&db, &r.id).unwrap().title, "Stale");
+    assert_eq!(
+        store::get(&db, &r.id).unwrap().sharing.tweet,
+        edited.sharing.tweet
+    );
 }

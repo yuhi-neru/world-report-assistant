@@ -48,7 +48,7 @@ import {
   type Settings,
 } from "./types";
 import SettingsModal from "./Settings";
-import { BriefCard, CopyCard } from "./WritingCards";
+import { ExperienceCard, CopyCard } from "./WritingCards";
 import {
   readAppearance,
   saveAppearance,
@@ -924,9 +924,11 @@ export default function App() {
                     </button>
                   </div>
                 </section>
-                <BriefCard
+                <ExperienceCard
                   report={draft}
-                  onChange={(brief) => update((r) => ({ ...r, brief }))}
+                  onChange={(experience) =>
+                    update((r) => ({ ...r, experience }))
+                  }
                 />
                 <section className="card notes-card">
                   <div className="section-heading">

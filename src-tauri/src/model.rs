@@ -104,6 +104,22 @@ pub struct Brief {
     pub how: String,
     pub why: String,
 }
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Experience {
+    pub scene: String,
+    pub action: String,
+    pub result: String,
+}
+pub const TWEET_TAGS: &str = "#VRchat #VRChatワールド紹介";
+pub fn tweet_footer(world: &World) -> String {
+    format!(
+        "World：{}\nhttps://vrchat.com/home/world/{}\n{}",
+        world.name.split_whitespace().collect::<Vec<_>>().join(" "),
+        world.id,
+        TWEET_TAGS
+    )
+}
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Sharing {
@@ -136,6 +152,8 @@ pub struct Review {
     pub notes: Notes,
     #[serde(default)]
     pub brief: Brief,
+    #[serde(default)]
+    pub experience: Experience,
     #[serde(default)]
     pub sharing: Sharing,
     pub title: String,
@@ -182,6 +200,10 @@ impl Review {
                 .len()
                 > 100_000
             || serde_json::to_vec(&self.brief)
+                .map_err(|e| e.to_string())?
+                .len()
+                > 32_000
+            || serde_json::to_vec(&self.experience)
                 .map_err(|e| e.to_string())?
                 .len()
                 > 32_000

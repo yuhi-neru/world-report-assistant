@@ -33,8 +33,14 @@
 
 `npm run build`、`npm run test:native`、`npm run test:browser` が基本検証。通常のテストで外部ブログに投稿しない。APIはRust側で実行し、WebViewへキーを返さない。Windowsの終了時は未保存内容を保存する。写真・入力が変わった後の古いCodex出力を取り込まない。
 
-## What / Who / How / Why と紹介文
+## 体験を伝えるSARと紹介文
 
-新しい依頼ではreview.briefの4項目を優先し、本人のメモも使って冒頭文・ツイートを作ります。sharing.jsonを {"opening":"記事の冒頭文", "tweet":"短いツイート本文"} のUTF-8 JSONで作成してください。未記入の体験・対象読者・おすすめ理由は捏造しません。ツイートはワールド名を含め、URL・タグを追加した完成文が280カウント以内となるよう短くします。
+review.experienceのscene（場所・環境）→action（訪問者の行動）→result（その行動で見える・聞こえる・体験できること）を、同じ体験の流れとしてつなげます。目的はJoin前に具体的な体験を予想できることです。ツイート本文は原則3行、完成文にSARのラベルは出しません。景観では眺める・散策・撮影も行動です。確認できた音・演出・仕組みを優先し、写真に見える情報は簡潔にします。未確認の結果・体験・感情は創作しません。材料が足りなければ1〜2行でも構いません。
 
-URLとハッシュタグ1つはアプリが付けるので、sharing.jsonのtweetにはどちらも含めません。対応環境もworld.platformsからアプリが付けるので、tweetに対応環境の一覧を重複させません。AndroidはQuest単機とAndroidスマホ、iOSはiOSスマホ、standalonewindowsはPCとして扱います。未取得の機種を対応・非対応と断定しません。記事の冒頭はアプリが別途付けるので、article.mdに同じ文章を重複させません。既に添削されている文章を尊重してください。ツイートを作る依頼は、Xへの投稿や送信の許可ではありません。
+review.notesと旧review.briefは参考資料です。旧Whyのおすすめ理由をResultへ機械的に移しません。添削済みの本文・冒頭・ツイートを尊重し、再生成の指示なしに上書きしません。
+
+sharing.jsonを {"opening":"記事の冒頭文", "tweet":"場所の文\n行動の文\n結果の文"} のUTF-8 JSONで作成します。openingは自然につなげた2〜3文です。article.mdに重複させません。
+
+ツイート本文にワールド名・URL・タグ・対応環境の一覧を含めません。アプリが取得済みの対応環境を添え、末尾にWorld：ワールド名・公開URL・固定タグ「#VRchat #VRChatワールド紹介」を付けます。input.jsonのcommunication.footer / platformsを参照し、これら込みで280カウント以内に収めます。旧sharing.hashtagは互換性のため保持しますが、現在の完成文には使いません。
+
+AndroidはQuest単機とAndroidスマホ、iOSはiOSスマホ、standalonewindowsはPCです。未取得の機種を対応・非対応と断定しません。ツイート作成の依頼はXへの送信の許可ではありません。

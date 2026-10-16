@@ -25,6 +25,16 @@ export interface Brief {
   how: string;
   why: string;
 }
+export interface Experience {
+  scene: string;
+  action: string;
+  result: string;
+}
+export const emptyExperience = (): Experience => ({
+  scene: "",
+  action: "",
+  result: "",
+});
 export interface Sharing {
   opening: string;
   tweet: string;
@@ -53,6 +63,7 @@ export interface Review {
   environment: string;
   notes: Notes;
   brief?: Brief;
+  experience?: Experience;
   sharing?: Sharing;
   title: string;
   body: string;
@@ -131,6 +142,7 @@ export function newReview(): Review {
       recommended: "",
     },
     brief: emptyBrief(),
+    experience: emptyExperience(),
     sharing: emptySharing(),
     title: "",
     body: "",
@@ -153,6 +165,7 @@ export function editKey(r: Review): string {
     r.environment,
     r.notes,
     r.brief,
+    r.experience,
     r.sharing,
     r.title,
     r.body,

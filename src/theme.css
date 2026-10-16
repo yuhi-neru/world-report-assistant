@@ -658,6 +658,9 @@ label small,
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
 }
+.brief-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .brief-grid b {
   display: inline-block;
   width: 45px;
@@ -734,6 +737,7 @@ label small,
   gap: 8px;
 }
 @media (max-width: 1200px) {
+  .brief-grid,
   .copy-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -741,4 +745,23 @@ label small,
   .copy-card {
     padding: 19px;
   }
+}
+
+.legacy-brief {
+  margin-top: 16px;
+  color: var(--muted);
+}
+.legacy-brief summary {
+  cursor: pointer;
+}
+.legacy-brief dl div {
+  margin: 12px 0;
+}
+.legacy-brief dt {
+  font-weight: 600;
+}
+.legacy-brief dd {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

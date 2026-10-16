@@ -1,6 +1,6 @@
 import twitterText from "twitter-text";
 const { extractHashtags, extractUrls, parseTweet } = twitterText;
-import { emptyBrief, emptySharing, type Review } from "./types";
+import { emptyExperience, emptySharing, type Review } from "./types";
 
 export function worldUrl(r: Review): string {
   return /^wrld_[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(
@@ -24,38 +24,33 @@ export function platformLine(r: Review): string {
   ].filter(Boolean);
   return labels.length ? `対応：${labels.join(" / ")}` : "";
 }
-export function hashtagValue(value: string): string {
-  return value.trim().replace(/^[#＃]/, "");
+export const TWEET_HASHTAGS = "#VRchat #VRChatワールド紹介";
+export function tweetFooter(r: Review): string {
+  const name = r.world.name.trim().replace(/\s+/g, " ");
+  return `World：${name || "【ワールド名】"}\n${worldUrl(r)}\n${TWEET_HASHTAGS}`;
 }
-export function validHashtag(value: string): boolean {
-  const tag = hashtagValue(value);
-  const tags = extractHashtags(`#${tag}`);
-  return !!tag && tag.length <= 60 && tags.length === 1 && tags[0] === tag;
-}
-const sentence = (text: string) => text.trim().replace(/[。.!！?？\s]+$/, "");
+const sentence = (text: string) =>
+  text
+    .trim()
+    .replace(/\s*\n\s*/g, " ")
+    .replace(/[。.!！?？\s]+$/, "");
 export function draftCopy(r: Review): { opening: string; tweet: string } {
-  const brief = r.brief ?? emptyBrief();
-  const what = sentence(brief.what || r.notes.summary);
-  const who = sentence(brief.who || r.notes.recommended);
-  const how = sentence(brief.how || r.notes.activities);
-  const why = sentence(brief.why || r.notes.highlights);
-  const name = r.world.name.trim();
-  const parts = [
-    what && `${name ? `「${name}」は、` : ""}${what}。`,
-    who && `${who}におすすめです。`,
-    how && `${how}。`,
-    why && `${why}。`,
-  ].filter(Boolean);
-  return {
-    opening: parts.join(""),
-    tweet: [name && `「${name}」`, what, who && `${who}におすすめ。`, how, why]
-      .filter(Boolean)
-      .join("\n"),
-  };
+  const experience = r.experience ?? emptyExperience();
+  // This is a scaffold from supplied facts. Codex connects the experience without inventing missing results.
+  const lines = [experience.scene, experience.action, experience.result]
+    .map(sentence)
+    .filter(Boolean)
+    .map((text) => `${text}。`);
+  return { opening: lines.join(""), tweet: lines.join("\n") };
 }
 export function tweetTemplate(r: Review): string {
-  const tag = hashtagValue((r.sharing ?? emptySharing()).hashtag);
-  return `「${r.world.name || "【ワールド名】"}」\n【What：テーマ・世界観】\n【Who：楽しめる人】におすすめ。\n【How：体験・遊び方】\n【Why：魅力・特徴】\n\n${platformLine(r) ? platformLine(r) + "\n" : ""}${worldUrl(r)}\n#${tag}`;
+  return [
+    "【どんな場所・環境なのか】。\n【そこで何をする・楽しめるのか】。\n【その行動で何が見える・聞こえる・体験できるのか】。",
+    platformLine(r),
+    tweetFooter(r),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 export function tweetResult(r: Review): {
   text: string;
@@ -65,19 +60,24 @@ export function tweetResult(r: Review): {
   const sharing = r.sharing ?? emptySharing();
   const body = sharing.tweet.trim();
   const url = worldUrl(r);
-  const tag = hashtagValue(sharing.hashtag);
-  const text = [body, platformLine(r), url, tag && `#${tag}`]
+  const text = [body, platformLine(r), tweetFooter(r)]
     .filter(Boolean)
     .join("\n\n");
   const parsed = parseTweet(text);
   const issues: string[] = [];
   if (!body) issues.push("ツイート本文を入力してください。");
   if (!url) issues.push("ワールドURLを取得してください。");
-  if (!validHashtag(tag))
-    issues.push("ハッシュタグを1つ入力してください（空白・複数指定は不可）。");
+  if (!r.world.name.trim()) issues.push("ワールド名を入力してください。");
   if (extractHashtags(body).length || extractUrls(body).length)
     issues.push(
-      "本文内のURL・ハッシュタグを外してください。末尾に自動で付きます。",
+      "本文内のURL・ハッシュタグを外してください。ワールド名・URL・指定の2タグは末尾に自動で付きます。",
+    );
+  if (
+    extractHashtags(text).length !== 2 ||
+    extractUrls(text).length !== (url ? 1 : 0)
+  )
+    issues.push(
+      "ワールド名に余分なURL・ハッシュタグがないか確認してください。",
     );
   if (parsed.weightedLength > 280)
     issues.push("通常の投稿上限を超えています。本文を短くしてください。");

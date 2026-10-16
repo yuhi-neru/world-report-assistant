@@ -87,8 +87,12 @@ try {
     .fill("実アプリの保存検証用ワールド");
   await page.getByLabel("作者", { exact: true }).fill("検証用");
   await page
-    .getByLabel("What 何のワールド？")
+    .getByLabel("Scene どんな場所？")
     .fill("入力と保存を確かめる検証用の空間");
+  await page.getByLabel("Action そこで何をする？").fill("部屋の中を歩く");
+  await page
+    .getByLabel("Result すると何を体験できる？")
+    .fill("配置した目印を見られる");
   await page
     .getByLabel("ひとことでいうと")
     .fill("これは実際の訪問記録ではなく、保存と取り込みの動作確認用です。");
@@ -105,7 +109,10 @@ try {
     await readFile(path.join(dataRoot, "reviews", id, "input.json"), "utf8"),
   );
   assert.equal(packet.photos.length, 1);
-  assert.equal(packet.review.brief.what, "入力と保存を確かめる検証用の空間");
+  assert.equal(
+    packet.review.experience.scene,
+    "入力と保存を確かめる検証用の空間",
+  );
   const article = `# WebView2実機検証の記事\n\n## 動作確認\n\nこれはテスト用の記事です。\n\n${packet.photos[0].marker}\n\nあとで削る一文。\n`;
   await writeFile(
     path.join(dataRoot, "reviews", id, "article.md"),
@@ -116,7 +123,7 @@ try {
     path.join(dataRoot, "reviews", id, "sharing.json"),
     JSON.stringify({
       opening: "実アプリの冒頭文を確認しています。",
-      tweet: "保存検証用ワールドの紹介文です。",
+      tweet: "検証用の部屋。\n部屋の中を歩く。\n配置した目印を見られる。",
     }),
     "utf8",
   );
@@ -140,7 +147,9 @@ try {
       "https://vrchat.com/home/world/wrld_2f16901a-457b-4312-b745-6582dfe4700e",
     ),
   );
-  assert.equal((tweetText.match(/#/g) || []).length, 1);
+  assert.equal((tweetText.match(/#/g) || []).length, 2);
+  assert(tweetText.endsWith("#VRchat #VRChatワールド紹介"));
+  assert(tweetText.includes("World：実アプリの保存検証用ワールド"));
   const body = await page.getByLabel("記事本文", { exact: true }).inputValue();
   await page
     .getByLabel("記事本文", { exact: true })
@@ -203,9 +212,9 @@ try {
     sqlitePersistence: true,
     codexPhotoExport: true,
     codexArticleImport: true,
-    fourPartBriefExport: true,
+    sarExperienceExport: true,
     openingAndTweetImport: true,
-    tweetIncludesWorldUrlAndOneTag: true,
+    tweetIncludesWorldNameUrlAndTwoTags: true,
     editedArticleSaved: true,
     backupCreated: true,
     nativeCloseSavedDraft: true,

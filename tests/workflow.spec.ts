@@ -1,4 +1,9 @@
-import { platformLine, tweetResult, tweetTemplate } from "../src/communication";
+import {
+  draftCopy,
+  platformLine,
+  tweetResult,
+  tweetTemplate,
+} from "../src/communication";
 import { newReview } from "../src/types";
 import { test, expect, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -14,13 +19,20 @@ const world = {
   fetchedAt: 1234,
   source: "検証用データ",
 };
-async function setup(page: Page, delay = 0, platforms: string[] = []) {
+async function setup(
+  page: Page,
+  delay = 0,
+  platforms: string[] = [],
+  initialReport: ReturnType<typeof newReview> | null = null,
+) {
   await page.addInitScript(
-    ({ world, delay }) => {
+    ({ world, delay, initialReport }) => {
       const w = window as any;
       w.isTauri = true;
       w.__calls = [];
-      const records = new Map<string, any>(),
+      const records = new Map<string, any>(
+          initialReport ? [[initialReport.id, initialReport]] : [],
+        ),
         photos = new Map<string, any[]>();
       let settings = {
         hatenaId: "test",
@@ -165,7 +177,7 @@ async function setup(page: Page, delay = 0, platforms: string[] = []) {
         },
       };
     },
-    { world: { ...world, platforms }, delay },
+    { world: { ...world, platforms }, delay, initialReport },
   );
   await page.goto("/");
 }
@@ -367,32 +379,36 @@ test("外観の切替で入力を保ち、再起動後も選択を保存しWindo
   });
 });
 
-test("ツイートはURLとタグ1つを付け、日本語・絵文字・URLの重みを数える", async () => {
+test("ツイートはワールド名・URLと指定2タグを末尾に付け、日本語・絵文字・URLの重みを数える", async () => {
   const report = newReview();
   report.world = { ...world, url: world.url + "?instanceId=private" };
   report.sharing!.tweet = "あ";
   let result = tweetResult(report);
   expect(result.issues).toEqual([]);
-  expect(result.length).toBe(36);
+  expect(result.length).toBe(83);
   expect(result.text).toContain(world.url);
   expect(result.text).not.toContain("instanceId");
-  expect(result.text.match(/#VRChat/g)).toHaveLength(1);
+  expect(
+    result.text.endsWith(
+      `World：${world.name}\n${world.url}\n#VRchat #VRChatワールド紹介`,
+    ),
+  ).toBe(true);
   report.sharing!.tweet = "👨‍👩‍👧‍👦";
-  expect(tweetResult(report).length).toBe(36);
+  expect(tweetResult(report).length).toBe(83);
   report.sharing!.tweet = "あ".repeat(140);
   expect(tweetResult(report).issues.join(" ")).toContain("上限");
   report.sharing!.tweet = "短い本文 #余分なタグ";
   expect(tweetResult(report).issues.join(" ")).toContain("本文内");
   report.sharing!.tweet = "https://example.com/";
   expect(tweetResult(report).issues.join(" ")).toContain("本文内");
-  report.sharing!.hashtag = "VRChat 別のタグ";
-  expect(tweetResult(report).issues.join(" ")).toContain("ハッシュタグを1つ");
-  report.sharing!.hashtag = "VRChat";
-  expect(tweetTemplate(report).match(/#/g)).toHaveLength(1);
+  report.sharing!.tweet = "短い本文";
+  report.sharing!.hashtag = "以前のタグ"; // Kept in storage, never emitted by the new format.
+  expect(tweetResult(report).text).not.toContain("#以前のタグ");
+  expect(tweetTemplate(report).match(/#/g)).toHaveLength(2);
   expect(tweetTemplate(report)).toContain(world.url);
 });
 
-test("4つの視点から冒頭文とツイートを作り、必須URLとタグ付きでコピーする", async ({
+test("SARから冒頭文とツイートを作り、必須URLとタグ付きでコピーする", async ({
   page,
 }) => {
   await setup(page);
@@ -409,18 +425,25 @@ test("4つの視点から冒頭文とツイートを作り、必須URLとタグ�
   });
   await page.getByLabel("ワールドURL", { exact: true }).fill(world.url);
   await page.getByRole("button", { name: "情報を取得", exact: true }).click();
-  await page.getByLabel("What 何のワールド？").fill("雨音がする図書室");
-  await page.getByLabel("Who 誰向け？").fill("静かに読書したい人");
+  await page.getByLabel("Scene どんな場所？").fill("雨が降る夜の図書室");
   await page
-    .getByLabel("How 何ができる？")
-    .fill("窓際で雨音を聞きながら過ごせる");
-  await page.getByLabel("Why なぜおすすめ？").fill("静かな照明が落ち着く");
+    .getByLabel("Action そこで何をする？")
+    .fill("窓際に座って外を眺める");
+  await page
+    .getByLabel("Result すると何を体験できる？")
+    .fill("雨粒と室内に響く雨音を楽しめる");
+  const notesToast = page.getByRole("button", { name: "通知を閉じる" });
+  if (await notesToast.count()) await notesToast.click();
+  await page.screenshot({
+    path: "artifacts/app-sar-notes.png",
+    fullPage: true,
+  });
   await page.getByRole("tab", { name: "記事を整える" }).click();
   await page.getByRole("button", { name: "空欄に雛形を入れる" }).click();
   await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
-    /雨音がする図書室.*静かに読書したい人.*窓際で雨音を聞きながら過ごせる.*静かな照明/,
+    /雨が降る夜の図書室.*窓際に座って外を眺める.*雨粒と室内に響く雨音/,
   );
-  await expect(page.locator(".prose")).toContainText("雨音がする図書室");
+  await expect(page.locator(".prose")).toContainText("雨が降る夜の図書室");
   await page
     .getByLabel("記事の冒頭文", { exact: true })
     .fill("自分で添削した冒頭です。");
@@ -433,13 +456,19 @@ test("4つの視点から冒頭文とツイートを作り、必須URLとタグ�
     .click();
   const copied = await page.evaluate(() => (window as any).__copied.at(-1));
   expect(copied).toContain(world.url);
-  expect(copied.match(/#/g)).toHaveLength(1);
-  await page.getByLabel("ハッシュタグ（1つ）").fill("ワールド紹介");
+  expect(copied.match(/#/g)).toHaveLength(2);
+  expect(
+    copied.endsWith(
+      `World：${world.name}\n${world.url}\n#VRchat #VRChatワールド紹介`,
+    ),
+  ).toBe(true);
+  expect(copied.split("\n\n")[0].split("\n")).toHaveLength(3);
+  expect(copied).not.toMatch(/Scene|Action|Result/);
   await page.getByRole("button", { name: "ツイート雛形をコピー" }).click();
   const template = await page.evaluate(() => (window as any).__copied.at(-1));
   expect(template).toContain(world.url);
-  expect(template).toContain("#ワールド紹介");
-  expect(template.match(/#/g)).toHaveLength(1);
+  expect(template).toContain("#VRchat #VRChatワールド紹介");
+  expect(template.match(/#/g)).toHaveLength(2);
   await page
     .getByLabel("ツイート本文", { exact: true })
     .fill("余分なタグ #extra");
@@ -449,7 +478,7 @@ test("4つの視点から冒頭文とツイートを作り、必須URLとタグ�
   await page
     .getByLabel("ツイート本文", { exact: true })
     .fill(
-      "「雨の図書室」雨音と静かな照明で落ち着ける場所。窓際で過ごせて、読書好きにおすすめ。",
+      "雨が降る夜の図書室。\n窓際に座って外を眺める。\n雨粒と室内に響く雨音を楽しめる。",
     );
   await page
     .getByLabel("記事本文", { exact: true })
@@ -483,7 +512,7 @@ test("APIで確認できた対応環境だけをツイートと雛形へ付け�
     expect(platformLine(report)).toBe(line);
     const result = tweetResult(report);
     expect(result.issues).toEqual([]);
-    expect(result.text.match(/#/g)).toHaveLength(1);
+    expect(result.text.match(/#/g)).toHaveLength(2);
     expect(result.text).toContain(world.url);
     if (line) {
       expect(result.text).toContain(line);
@@ -516,4 +545,81 @@ test("APIのAndroid情報をQuest単機とAndroidスマホとして完成文へ�
   await expect(
     page.getByRole("button", { name: "ツイート文をコピー", exact: true }),
   ).toBeEnabled();
+});
+
+test("SARの欠けた結果を旧おすすめ理由から創作しない", async () => {
+  const report = newReview();
+  report.world = world;
+  report.brief = {
+    what: "喫茶店",
+    who: "誰でも",
+    how: "散策",
+    why: "すごい！おすすめ！",
+  };
+  delete report.experience;
+  expect(draftCopy(report)).toEqual({ opening: "", tweet: "" });
+  report.experience = { scene: "夜の喫茶店", action: "窓際に座る", result: "" };
+  expect(draftCopy(report).tweet).toBe("夜の喫茶店。\n窓際に座る。");
+  expect(draftCopy(report).tweet).not.toContain("すごい");
+  report.world = { ...world, name: "" };
+  report.sharing!.tweet = "短い本文";
+  expect(tweetResult(report).issues).toContain(
+    "ワールド名を入力してください。",
+  );
+  report.world = { ...world, name: "名前 #extra" };
+  expect(tweetResult(report).issues.join(" ")).toContain("余分なURL");
+});
+
+test("旧4項目と添削済み文章を保ったままSARを追加保存できる", async ({
+  page,
+}) => {
+  const legacy = newReview();
+  legacy.world = world;
+  legacy.revision = 1;
+  legacy.title = "以前に添削した記録";
+  legacy.body = "以前に添削した本文。";
+  legacy.brief = {
+    what: "図書室",
+    who: "読書好き",
+    how: "窓際に座る",
+    why: "すごい、おすすめ",
+  };
+  legacy.sharing!.opening = "以前に添削した冒頭。";
+  legacy.sharing!.tweet = "以前に添削した紹介文。";
+  delete legacy.experience;
+  await setup(page, 0, [], legacy);
+  await page.getByRole("button", { name: /雨の図書室（検証用）/ }).click();
+  await page.getByRole("tab", { name: "メモと写真" }).click();
+  await expect(page.getByLabel("Result すると何を体験できる？")).toHaveValue(
+    "",
+  );
+  await page
+    .getByText("以前の4項目を参照する（保存内容は維持）", { exact: true })
+    .click();
+  await expect(page.locator(".legacy-brief")).toContainText("すごい、おすすめ");
+  await page.getByLabel("Scene どんな場所？").fill("雨が降る夜の図書室");
+  await page.getByRole("tab", { name: "記事を整える" }).click();
+  await page.getByRole("button", { name: "空欄に雛形を入れる" }).click();
+  await expect(page.getByLabel("記事本文", { exact: true })).toHaveValue(
+    legacy.body,
+  );
+  await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
+    legacy.sharing!.opening,
+  );
+  await expect(page.getByLabel("ツイート本文", { exact: true })).toHaveValue(
+    legacy.sharing!.tweet,
+  );
+  await page.getByRole("button", { name: "保存", exact: true }).click();
+  await expect(
+    page.getByText("記録を保存しました。", { exact: true }),
+  ).toBeVisible();
+  const saved = await page.evaluate(
+    () =>
+      (window as any).__calls.filter((x: any) => x.action === "save").at(-1)
+        .payload.review,
+  );
+  expect(saved.brief).toEqual(legacy.brief);
+  expect(saved.experience.scene).toBe("雨が降る夜の図書室");
+  expect(saved.experience.result).toBe("");
+  expect(saved.sharing.tweet).toBe(legacy.sharing!.tweet);
 });

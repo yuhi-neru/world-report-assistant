@@ -1,4 +1,4 @@
-# ワールドレポートの記録形式（試案 v0.2）
+# ワールドレポートの記録形式（試案 v0.3）
 
 「その場所の情報」と「その日に自分が感じたこと」を、混ぜずに一緒に残すための小さな約束です。VRChatの公式規格ではなく、VRMのような既存の標準との互換性もありません。まず個人の記録から始め、使いながら項目を見直します。
 
@@ -12,7 +12,7 @@
 
 ## 使い方
 
-1. [テンプレート](../templates/world-report-v0.2.md) をコピーする。アプリなしでも使えます。
+1. [テンプレート](../templates/world-report-v0.3.md) をコピーする。アプリなしでも使えます。
 2. URL・名前・作者などの確認済みの基本情報を書く。
 3. 訪問日と実際に使った環境を書く。「PCで訪問した」と「PCのみに対応している」は別の情報です。
 4. 7つの感想欄から書けるものを箇条書きにする。全欄を埋める必要はありません。
@@ -36,6 +36,8 @@
 | よかったところ | notes.highlights | 個人の感想 |
 | 気になったところ | notes.concerns | 個人の感想。なければ空欄 |
 | おすすめ | notes.recommended | 自分が勧めたい用途や人 |
+| 体験の流れ | experience.scene / action / result | 同じ訪問体験の場所・行動・その結果 |
+| 旧4項目 | brief.what / who / how / why | 過去の素材として保持し参照 |
 | 写真・説明 | photos / caption | メモと対応する写真 |
 | 記事タイトル・本文 | title / body | 編集・添削後の文章 |
 | レポートID・版 | id / revision | 一回の記録の識別と変更管理 |
@@ -44,25 +46,38 @@
 
 ## バージョンと保存
 
-人が記入するテンプレートの版は **v0.2**、アプリの内部保存形式は **schemaVersion: 1**。これらは別のバージョンです。今回のアプリ配布版は **v0.2.1** です。
+人が記入するテンプレートの版は **v0.3**、アプリの内部保存形式は **schemaVersion: 1**。これらは別のバージョンです。今回のアプリ配布版は **v0.3.0** です。
 
 SQLiteが原本です。Codexにはinput.json・request.md・写真を渡し、article.mdを取り込みます。review.jsonとedited.mdは保存内容の控えです。内部JSONを直接編集してもSQLには反映しません。既存の個人データやAPIキーはGitHubへ公開しません。
 
 ツールの紹介記事など、訪問を伴わない記事はkind: articleとして取り込み、ワールド情報を捏造せずに保存・投稿します。通常の記録はkind: world-reviewです。kindがない旧データはworld-reviewとして読み込みます。
 
-## 冒頭文とツイート（v0.2）
+## 冒頭文とツイート（v0.3、SAR）
 
-brief.what / who / how / why に、テーマ・世界観、楽しめる人、体験・遊び方、魅力・特徴を保存します。詳細な体験メモとは別の、伝える軸です。未記入はAIで推測させません。
+目的はJoin前に体験を具体的に予想できる文章にすることです。experience.scene（場所・環境）→ action（訪問者がすること）→ result（その行動で見える・聞こえる・体験できること）を同じ体験の流れとして記録します。
 
-sharing.opening は冒頭文、sharing.tweet はURLとタグを除いた短い本文、sharing.hashtag はハッシュタグ1つ（初期値VRChat）、sharing.includeOpening は記事先頭への使用指定です。冒頭文 → 基本情報 → 本文の順にプレビュー・投稿します。
+原則3行の本文にし、完成文にはSARのラベルを出しません。景観なら眺める・散策する・撮影することも行動です。写真で分かる景色は簡潔にし、音・演出・仕組みは確認できた記録だけを補います。未確認の内容は創作せず、材料が足りなければ1〜2行に留めます。
 
-Codexはarticle.mdとsharing.jsonを作成します。sharing.jsonは {"opening":"冒頭文", "tweet":"ツイート本文"}。アプリはworld.idから公開用のワールドURLを作り、選択したハッシュタグを1つ付けます。ツイートとコピーできる雛形の両方にURL・タグが付きます。本文にURLや余分なタグがある場合、または通常の投稿上限を超える場合はコピー前に修正します。
+sharing.openingは記事の冒頭文、sharing.tweetは3行を目安にした本文、sharing.includeOpeningは記事先頭への使用指定です。Codexはarticle.mdとsharing.json（{"opening":"冒頭文", "tweet":"場所の文\n行動の文\n結果の文"}）を作成します。openingは2〜3文で自然につなぎ、article.mdと重複させません。アプリの草稿ボタンは入力文を整形するだけで、自然な文章への推敲はCodexと人の添削で行います。
 
-edited-sharing.jsonとtweet.txtは添削内容の控えです。tweet.txtは草稿の控えなので、使う前にツールの文字数・タグの検証を確認してください。Xへはアプリから自動投稿せず、文章をコピーして自分で投稿します。
+完成文とコピーできる雛形は、本文 → 確認できた対応環境 → 末尾の順です。末尾は以下で固定します。
 
-旧データには空のbriefとsharingの初期値を補い、既存のメモ・本文・投稿先を維持します。Codexへの依頼後に4つの視点や冒頭文・ツイートを編集した場合、古い出力の取り込みを止めます。依頼し直すとarticle.mdとsharing.jsonは両方とも退避します。
+```text
+World：【ワールド名】
+【公開用ワールドURL】
+#VRchat #VRChatワールド紹介
+```
 
+APIのunityPackagesから取得したworld.platformsに応じて、PC / Quest単機 / スマホ(Android) / スマホ(iOS)のうち確認できた環境だけを追加します。Android / Quest（android）はQuest単機とAndroidスマホ、iOSはiOSスマホ、PC（standalonewindows）はPCです。未取得・未知の値は表示せず、「PCのみ」「非対応」とは断定しません。iOS向けパッケージがない場合のAndroid版フォールバックからiOS対応を推定しません。
 
-APIのunityPackagesから取得したworld.platformsに応じて、完成ツイート・コピー用雛形・tweet.txtに「対応：PC / Quest単機 / スマホ(Android) / スマホ(iOS)」のうち確認できた環境だけを追加します。Android / Quest（android）はQuest単機とAndroidスマホ、iOSはiOSスマホ、PC（standalonewindows）はPCに対応します。旧保存済みの表記も利用できます。未取得・未知の値は表示せず、「PCのみ」「非対応」とは判定しません。iOS向けパッケージがない場合のAndroid版フォールバックからiOS対応を推定しません。対応表示も文字数制限に含めます。
+ワールド名・URL・2タグ・対応環境も文字数に含めます。本文に余分なURLやタグがある場合、または通常の上限を超える場合はコピーを止めて修正を促します。ツイート本文そのものは添削できます。Xへの自動送信は行いません。
+
+## 旧データとの互換性
+
+SQLiteが原本です。旧データに空のexperienceを補って読み込みます。schemaVersionは1のまま、既存のメモ・写真・冒頭文・本文・ツイート・投稿先を保持します。旧briefは参照用に残し、特にWhoやWhyを結果へ機械的に変換しません。旧sharing.hashtagも保持しますが、完成文では固定の2タグを使います。
+
+Codex依頼後にSARや素材・添削文が変わると古い出力の取り込みを止めます。移行前に作った依頼も安全のため作り直してください。「Codexに渡す」を実行するとarticle.mdとsharing.jsonを両方退避し、新しい依頼を作成します。input.jsonのcommunicationにはフレームワークの版（SAR-v1）と対応環境・末尾を含め、Codexが完成文全体の長さを考慮できるようにします。
+
+review.json・edited.md・edited-sharing.json・tweet.txtは控えです。tweet.txtは草稿なので、使う前にツールの文字数・タグの検証を確認してください。
 
 参考：[VRChatの対応プラットフォーム](https://creators.vrchat.com/platforms/)

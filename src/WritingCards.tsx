@@ -1,58 +1,52 @@
 import { Clipboard, FileText, Sparkles } from "lucide-react";
 import {
   draftCopy,
-  hashtagValue,
   tweetResult,
   tweetTemplate,
-  validHashtag,
   worldUrl,
 } from "./communication";
 import {
   emptyBrief,
+  emptyExperience,
   emptySharing,
-  type Brief,
+  type Experience,
   type Review,
   type Sharing,
 } from "./types";
 
-export function BriefCard({
+export function ExperienceCard({
   report,
   onChange,
 }: {
   report: Review;
-  onChange: (value: Brief) => void;
+  onChange: (value: Experience) => void;
 }) {
   if (report.kind === "article") return null;
-  const brief = report.brief ?? emptyBrief();
+  const experience = report.experience ?? emptyExperience();
+  const legacy = report.brief ?? emptyBrief();
   const fields: {
-    key: keyof Brief;
+    key: keyof Experience;
     title: string;
     question: string;
     hint: string;
   }[] = [
     {
-      key: "what",
-      title: "What",
-      question: "何のワールド？",
-      hint: "テーマ・世界観。例：雨が降る夜の喫茶店",
+      key: "scene",
+      title: "Scene",
+      question: "どんな場所？",
+      hint: "訪問先を思い浮かべる手がかり。例：雨が降る夜の喫茶店",
     },
     {
-      key: "who",
-      title: "Who",
-      question: "誰向け？",
-      hint: "楽しめる人。例：静かに過ごしたい人",
+      key: "action",
+      title: "Action",
+      question: "そこで何をする？",
+      hint: "同じ場所での具体的な行動。例：窓際に座って外を眺める。散策・撮影も行動です",
     },
     {
-      key: "how",
-      title: "How",
-      question: "何ができる？",
-      hint: "体験・遊び方。例：窓辺で雨音を聞きながら友達と話せる",
-    },
-    {
-      key: "why",
-      title: "Why",
-      question: "なぜおすすめ？",
-      hint: "魅力・特徴。例：窓の雨粒と柔らかい照明が落ち着く",
+      key: "result",
+      title: "Result",
+      question: "すると何を体験できる？",
+      hint: "上の行動で見える・聞こえること。例：窓に当たる雨粒と、室内に響く雨音を楽しめる。確認した内容だけ",
     },
   ];
   return (
@@ -62,9 +56,10 @@ export function BriefCard({
           <FileText size={18} />
         </div>
         <div>
-          <h2>伝えることを、4つの視点で</h2>
+          <h2>Joinした後の体験を、順番に</h2>
           <p>
-            書けるところだけで大丈夫。記事の冒頭とツイートの素材になります。
+            同じ体験を「場所 → 行動 →
+            その結果」でつなぎます。写真だけでは伝わらない音・仕組みも、確認できたら記入してください。未確認の欄は空欄で大丈夫です。
           </p>
         </div>
       </div>
@@ -76,15 +71,44 @@ export function BriefCard({
             </span>
             <textarea
               aria-label={`${f.title} ${f.question}`}
-              value={brief[f.key]}
+              value={experience[f.key]}
               placeholder={f.hint}
               rows={2}
               maxLength={2000}
-              onChange={(e) => onChange({ ...brief, [f.key]: e.target.value })}
+              onChange={(e) =>
+                onChange({ ...experience, [f.key]: e.target.value })
+              }
             />
           </label>
         ))}
       </div>
+      <p className="copy-hint">
+        SARは文章を組み立てるための手がかりです。完成文にラベルは付きません。「綺麗」「おすすめ」より、どこで何をすると何が起こるかを具体的に残します。
+      </p>
+      {Object.values(legacy).some((v) => v.trim()) && (
+        <details className="legacy-brief">
+          <summary>以前の4項目を参照する（保存内容は維持）</summary>
+          <dl>
+            {[
+              ["What", legacy.what],
+              ["Who", legacy.who],
+              ["How", legacy.how],
+              ["Why", legacy.why],
+            ].map(
+              ([label, text]) =>
+                text && (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{text}</dd>
+                  </div>
+                ),
+            )}
+          </dl>
+          <p className="copy-hint">
+            おすすめ理由を結果へ自動変換しません。確認できる体験だけを上の欄へ整理してください。
+          </p>
+        </details>
+      )}
     </section>
   );
 }
@@ -108,7 +132,7 @@ export function CopyCard({
       opening: sharing.opening || draft.opening,
       tweet: sharing.tweet || draft.tweet,
     });
-    notify("空欄に4つの視点から雛形を入れました。読み直して整えてください。");
+    notify("空欄に体験の流れから雛形を入れました。読み直して整えてください。");
   };
   const copy = async (text: string) => {
     try {
@@ -129,7 +153,9 @@ export function CopyCard({
         </div>
         <div>
           <h2>記事の冒頭と、ツイート</h2>
-          <p>4つの視点から雛形を作り、Codexで文章に整えてから取り込めます。</p>
+          <p>
+            場所・行動・結果から雛形を作り、Codexでつながる文章に整えて取り込めます。
+          </p>
         </div>
         <button
           className="button"
@@ -152,7 +178,7 @@ export function CopyCard({
               }
               rows={5}
               maxLength={8000}
-              placeholder="何のワールドで、誰がどんな体験を楽しめるのか。なぜおすすめかを2〜4文で。"
+              placeholder="どんな場所で何をすると、何を体験できるのか。自然につながる2〜3文で。"
             />
           </label>
           <label className="check-row">
@@ -187,25 +213,11 @@ export function CopyCard({
               onChange={(e) => onChange({ ...sharing, tweet: e.target.value })}
               rows={5}
               maxLength={4000}
-              placeholder="ワールド名とWhat・Who・How・Whyを短く。URLとタグは下で自動付与します。"
+              placeholder="原則3行で、場所 → 行動 → その結果。ワールド名・URL・2タグは下で自動付与します。"
             />
           </label>
           <div className="tweet-controls">
-            <label>
-              ハッシュタグ（1つ）
-              <input
-                aria-label="ハッシュタグ（1つ）"
-                value={sharing.hashtag}
-                onChange={(e) =>
-                  onChange({
-                    ...sharing,
-                    hashtag: hashtagValue(e.target.value),
-                  })
-                }
-                placeholder="VRChat"
-                maxLength={60}
-              />
-            </label>
+            <p className="copy-hint">末尾のタグ：#VRchat #VRChatワールド紹介</p>
             <span
               className={
                 result.length > 280 ? "tweet-count over" : "tweet-count"
@@ -221,11 +233,11 @@ export function CopyCard({
               aria-label="URL・タグ付きの完成文"
               value={result.text}
               readOnly
-              rows={5}
+              rows={11}
             />
           </label>
           <p className="copy-hint">
-            取得できた対応環境・ワールドURL・ハッシュタグ1つを自動付与。スマホはAndroidとiOSを分けて表示します。文字数は対応環境も含めて計算します。
+            取得できた対応環境を添え、末尾にワールド名・URL・指定の2タグを自動付与。スマホはAndroidとiOSを分けて表示します。文字数は対応環境も含めて計算します。
           </p>
           {result.issues.length > 0 && (
             <p className="copy-issue" role="status">
@@ -243,7 +255,7 @@ export function CopyCard({
             </button>
             <button
               className="button"
-              disabled={!worldUrl(report) || !validHashtag(sharing.hashtag)}
+              disabled={!worldUrl(report) || !report.world.name.trim()}
               onClick={() => void copy(tweetTemplate(report))}
             >
               ツイート雛形をコピー
