@@ -722,19 +722,21 @@ export default function App() {
                 }}
               >
                 <option value="article">記事・冒頭文・ツイート</option>
-                <option value="tweet">ツイートだけ</option>
+                <option value="tweet">
+                  ツイートだけ（チャットで受け取る）
+                </option>
               </select>
             </label>
-            <Button
-              icon={ArrowDownToLine}
-              variant="subtle"
-              onClick={importArticle}
-              disabled={!!busy || pending}
-            >
-              {generationMode === "tweet"
-                ? "ツイートを取り込む"
-                : "記事を取り込む"}
-            </Button>
+            {generationMode === "article" && (
+              <Button
+                icon={ArrowDownToLine}
+                variant="subtle"
+                onClick={importArticle}
+                disabled={!!busy || pending}
+              >
+                記事を取り込む
+              </Button>
+            )}
             {tab === "notes" || generationMode === "tweet" ? (
               <Button
                 icon={Sparkles}
@@ -812,7 +814,7 @@ export default function App() {
               </Button>
               <small>
                 {generationMode === "tweet"
-                  ? "tweet.jsonができたら「ツイートを取り込む」へ"
+                  ? "完成文はチャットに表示されます。そのままコピーして使えます"
                   : "記事ができたら「記事を取り込む」へ"}
               </small>
             </div>

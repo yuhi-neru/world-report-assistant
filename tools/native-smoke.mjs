@@ -182,21 +182,14 @@ try {
   await page.getByLabel("作成するもの", { exact: true }).selectOption("tweet");
   await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
   await page.getByLabel("Codexへの依頼文").waitFor();
-  await writeFile(
-    path.join(dataRoot, "reviews", id, "tweet.json"),
-    JSON.stringify({
-      tweet: "検証用の部屋。\n部屋の中を歩く。\n配置した目印を見られる。",
-    }),
-    "utf8",
+  const tweetPrompt = await page.getByLabel("Codexへの依頼文").inputValue();
+  assert(tweetPrompt.includes("完成文をチャットに直接表示"));
+  assert.equal(
+    await page
+      .getByRole("button", { name: "ツイートを取り込む", exact: true })
+      .count(),
+    0,
   );
-  await page
-    .getByRole("button", { name: "ツイートを取り込む", exact: true })
-    .click();
-  await page
-    .getByText("ツイートだけを取り込みました。記事と冒頭文はそのままです。", {
-      exact: true,
-    })
-    .waitFor();
   const afterTweet = (await invoke("read", { id })).review;
   assert.equal(afterTweet.body, beforeTweet.body);
   assert.equal(afterTweet.title, beforeTweet.title);
@@ -264,7 +257,7 @@ try {
     tweetIncludesWorldNameUrlAndTwoTags: true,
     editedArticleSaved: true,
     articleMaterialExport: true,
-    tweetOnlyImportPreservesArticleAndOpening: true,
+    tweetChatRequestPreservesArticleAndOpening: true,
     backupCreated: true,
     nativeCloseSavedDraft: true,
     liveMetadata,

@@ -566,6 +566,15 @@ fn article_material_preferences_roundtrip_and_changes_block_stale_import() {
     assert_ne!(store::get(&db, &r.id).unwrap().title, "Stale");
 }
 
+// Older versions prepared JSON outputs. Keep that input fixture separate from chat requests.
+fn use_legacy_tweet_output(dir: &std::path::Path) {
+    let path = dir.join("input.json");
+    let mut input: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    input["outputs"] = json!({"tweet":"tweet.json"});
+    std::fs::write(path, serde_json::to_vec_pretty(&input).unwrap()).unwrap();
+}
+
 #[test]
 fn tweet_only_uses_existing_body_preserves_article_files_and_imports_no_opening() {
     let tmp = tempfile::tempdir().unwrap();
@@ -589,12 +598,18 @@ fn tweet_only_uses_existing_body_preserves_article_files_and_imports_no_opening(
         std::fs::read_to_string(dir.join("sharing.json")).unwrap(),
         "Keep this original sharing file"
     );
-    assert!(!dir.join("tweet.json").exists());
+    assert_eq!(
+        std::fs::read_to_string(dir.join("tweet.json")).unwrap(),
+        "Old tweet output"
+    );
     let input: serde_json::Value =
         serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
     assert_eq!(input["generationMode"], "tweet-only");
-    assert_eq!(input["outputs"], json!({"tweet":"tweet.json"}));
+    assert_eq!(input["outputs"], json!({"chat":"complete-tweet"}));
     assert_eq!(input["review"]["body"], r.body);
+    let request = std::fs::read_to_string(dir.join("request.md")).unwrap();
+    assert!(request.contains("チャット本文に直接表示"));
+    assert!(request.contains("communication.footer"));
     assert!(workspace::import(tmp.path(), &mut db, &r.id)
         .unwrap_err()
         .contains("ツイート専用"));
@@ -603,6 +618,10 @@ fn tweet_only_uses_existing_body_preserves_article_files_and_imports_no_opening(
         r#"{"tweet":"新しいツイート本文。"}"#,
     )
     .unwrap();
+    assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id)
+        .unwrap_err()
+        .contains("チャット出力"));
+    use_legacy_tweet_output(&dir);
     let imported = workspace::import_tweet(tmp.path(), &mut db, &r.id).unwrap();
     assert_eq!(imported.sharing.tweet, "新しいツイート本文。");
     assert_eq!(imported.body, r.body);
@@ -627,6 +646,7 @@ fn sar_only_tweet_needs_no_article_and_rejects_invalid_or_stale_outputs() {
     let mut r = store::save(&mut db, r, "sar-only").unwrap();
     let dir = workspace::folder(tmp.path(), &r.id).unwrap();
     workspace::prepare_tweet(tmp.path(), &db, &r.id).unwrap();
+    use_legacy_tweet_output(&dir);
     assert!(!dir.join("article.md").exists());
     assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id).is_err());
     for invalid in [
@@ -645,6 +665,7 @@ fn sar_only_tweet_needs_no_article_and_rejects_invalid_or_stale_outputs() {
     assert!(r.sharing.opening.is_empty());
     for field in ["sar", "body", "tweet"] {
         workspace::prepare_tweet(tmp.path(), &db, &r.id).unwrap();
+        use_legacy_tweet_output(&dir);
         std::fs::write(dir.join("tweet.json"), r#"{"tweet":"Old output"}"#).unwrap();
         let mut changed = store::get(&db, &r.id).unwrap();
         match field {

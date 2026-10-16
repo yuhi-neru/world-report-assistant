@@ -127,7 +127,7 @@ async function setup(
             return {
               path: `C:\\Code\\world-review-assistant\\workspace\\reviews\\${p.id}`,
               prompt:
-                "request.mdを読んで、ツイートだけをtweet.jsonへ作成してください。記事・冒頭文は変更しません。",
+                "request.mdを読んで、ツイートの完成文をチャットに直接表示してください。ワールド名・URL・2タグを含めます。JSON不要。",
             };
           if (action === "import-tweet") {
             const r = records.get(p.id);
@@ -702,19 +702,24 @@ test("本文の材料と記事化希望を保存し、SAR・旧メモ・添削�
   await expect(page.getByLabel("Codexへの依頼文")).toBeVisible();
 });
 
-test("ツイートだけを依頼・取り込み、記事と冒頭文を変更しない", async ({
+test("ツイートだけは完成文をチャットで受け取る依頼になり、記事を取り込まない", async ({
   page,
 }) => {
   const original = newReview();
   original.world = world;
   original.revision = 1;
-  original.title = "添削済みタイトル";
   original.body = "添削済みの記事本文。";
-  original.sharing!.opening = "";
+  original.title = "添削済みタイトル";
   original.experience!.scene = "雨が降る夜の図書室";
   await setup(page, 0, [], original);
   await page.getByRole("button", { name: /雨の図書室（検証用）/ }).click();
   await page.getByLabel("作成するもの", { exact: true }).selectOption("tweet");
+  await expect(
+    page.getByRole("button", { name: "ツイートを取り込む", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "記事を取り込む", exact: true }),
+  ).toHaveCount(0);
   await page
     .getByRole("button", { name: "空欄に雛形を入れる", exact: true })
     .click();
@@ -723,29 +728,25 @@ test("ツイートだけを依頼・取り込み、記事と冒頭文を変更�
   );
   await page.getByRole("button", { name: "Codexに渡す", exact: true }).click();
   await expect(page.getByLabel("Codexへの依頼文")).toHaveValue(
-    /ツイートだけ.*tweet.json/,
+    /完成文をチャットに直接表示/,
   );
-  await page
-    .getByRole("button", { name: "ツイートを取り込む", exact: true })
-    .click();
+  await expect(
+    page.getByText(
+      "完成文はチャットに表示されます。そのままコピーして使えます",
+      { exact: true },
+    ),
+  ).toBeVisible();
   await expect(page.getByLabel("記事タイトル", { exact: true })).toHaveValue(
     original.title,
   );
   await expect(page.getByLabel("記事本文", { exact: true })).toHaveValue(
     original.body,
   );
-  await expect(page.getByLabel("記事の冒頭文", { exact: true })).toHaveValue(
-    original.sharing!.opening,
-  );
-  await expect(page.getByLabel("ツイート本文", { exact: true })).toHaveValue(
-    /雨音を聞ける/,
-  );
   const calls = await page.evaluate(() =>
     (window as any).__calls.map((x: any) => x.action),
   );
   expect(calls).toContain("prepare-tweet");
-  expect(calls).toContain("import-tweet");
-  expect(calls).not.toContain("prepare-codex");
+  expect(calls).not.toContain("import-tweet");
   expect(calls).not.toContain("import-article");
   expect(calls).not.toContain("publish");
   await page.screenshot({
