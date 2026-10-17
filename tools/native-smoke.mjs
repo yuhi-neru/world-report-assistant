@@ -86,18 +86,20 @@ try {
     .getByLabel("ワールド名", { exact: true })
     .fill("実アプリの保存検証用ワールド");
   await page.getByLabel("作者", { exact: true }).fill("検証用");
+  await page.getByRole("button", { name: "文書を追加", exact: true }).click();
+  await page.getByLabel("資料1の名前", { exact: true }).fill("検証用メモ");
   await page
-    .getByLabel("Scene どんな場所？")
-    .fill("入力と保存を確かめる検証用の空間");
-  await page.getByLabel("Action そこで何をする？").fill("部屋の中を歩く");
+    .getByLabel("資料1の本文", { exact: true })
+    .fill("検証用の部屋。部屋の中を歩く。配置した目印を見られる。");
   await page
-    .getByLabel("Result すると何を体験できる？")
-    .fill("配置した目印を見られる");
+    .locator(".source-element")
+    .filter({ hasText: "配置した目印を見られる。" })
+    .waitFor();
   await page
     .getByLabel("体験した順序・遊び方", { exact: true })
     .fill("これは実際の訪問記録ではなく、保存と取り込みの動作確認用です。");
   await page
-    .locator("input[type=file]")
+    .locator('input[type=file][accept="image/jpeg,image/png,image/webp"]')
     .setInputFiles(path.join(project, "src-tauri/icons/icon.png"));
   await page.getByRole("img", { name: "撮影写真 1", exact: true }).waitFor();
   await page
@@ -119,9 +121,12 @@ try {
   );
   assert.equal(packet.photos.length, 1);
   assert.equal(packet.review.articleMaterial.omit, "仕掛けの結末");
-  assert.equal(
-    packet.review.experience.scene,
-    "入力と保存を確かめる検証用の空間",
+  assert.equal(packet.review.sourceDocuments[0].title, "検証用メモ");
+  assert.equal(packet.materials.analysisStatus, "ready");
+  assert(
+    packet.materials.analysis.elements.some(
+      (e) => e.quote === "配置した目印を見られる。",
+    ),
   );
   const article = `# WebView2実機検証の記事\n\n## 動作確認\n\nこれはテスト用の記事です。\n\n${packet.photos[0].marker}\n\nあとで削る一文。\n`;
   await writeFile(
@@ -252,7 +257,7 @@ try {
     sqlitePersistence: true,
     codexPhotoExport: true,
     codexArticleImport: true,
-    sarExperienceExport: true,
+    sourceMaterialsExport: true,
     openingAndTweetImport: true,
     tweetIncludesWorldNameUrlAndTwoTags: true,
     editedArticleSaved: true,

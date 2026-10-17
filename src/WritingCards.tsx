@@ -5,113 +5,7 @@ import {
   tweetTemplate,
   worldUrl,
 } from "./communication";
-import {
-  emptyBrief,
-  emptyExperience,
-  emptySharing,
-  type Experience,
-  type Review,
-  type Sharing,
-} from "./types";
-
-export function ExperienceCard({
-  report,
-  onChange,
-}: {
-  report: Review;
-  onChange: (value: Experience) => void;
-}) {
-  if (report.kind === "article") return null;
-  const experience = report.experience ?? emptyExperience();
-  const legacy = report.brief ?? emptyBrief();
-  const fields: {
-    key: keyof Experience;
-    title: string;
-    question: string;
-    hint: string;
-  }[] = [
-    {
-      key: "scene",
-      title: "Scene",
-      question: "どんな場所？",
-      hint: "訪問先を思い浮かべる手がかり。例：雨が降る夜の喫茶店",
-    },
-    {
-      key: "action",
-      title: "Action",
-      question: "そこで何をする？",
-      hint: "同じ場所での具体的な行動。例：窓際に座って外を眺める。散策・撮影も行動です",
-    },
-    {
-      key: "result",
-      title: "Result",
-      question: "すると何を体験できる？",
-      hint: "上の行動で見える・聞こえること。例：窓に当たる雨粒と、室内に響く雨音を楽しめる。確認した内容だけ",
-    },
-  ];
-  return (
-    <section className="card brief-card">
-      <div className="section-heading">
-        <div className="section-icon">
-          <FileText size={18} />
-        </div>
-        <div>
-          <h2>Joinした後の体験を、順番に</h2>
-          <p>
-            同じ体験を「場所 → 行動 →
-            その結果」でつなぎます。写真だけでは伝わらない音・仕組みも、確認できたら記入してください。未確認の欄は空欄で大丈夫です。
-          </p>
-        </div>
-      </div>
-      <div className="brief-grid">
-        {fields.map((f) => (
-          <label key={f.key}>
-            <span>
-              <b>{f.title}</b> {f.question}
-            </span>
-            <textarea
-              aria-label={`${f.title} ${f.question}`}
-              value={experience[f.key]}
-              placeholder={f.hint}
-              rows={2}
-              maxLength={2000}
-              onChange={(e) =>
-                onChange({ ...experience, [f.key]: e.target.value })
-              }
-            />
-          </label>
-        ))}
-      </div>
-      <p className="copy-hint">
-        SARは文章を組み立てるための手がかりです。完成文にラベルは付きません。「綺麗」「おすすめ」より、どこで何をすると何が起こるかを具体的に残します。
-      </p>
-      {Object.values(legacy).some((v) => v.trim()) && (
-        <details className="legacy-brief">
-          <summary>以前の4項目を参照する（保存内容は維持）</summary>
-          <dl>
-            {[
-              ["What", legacy.what],
-              ["Who", legacy.who],
-              ["How", legacy.how],
-              ["Why", legacy.why],
-            ].map(
-              ([label, text]) =>
-                text && (
-                  <div key={label}>
-                    <dt>{label}</dt>
-                    <dd>{text}</dd>
-                  </div>
-                ),
-            )}
-          </dl>
-          <p className="copy-hint">
-            おすすめ理由を結果へ自動変換しません。確認できる体験だけを上の欄へ整理してください。
-          </p>
-        </details>
-      )}
-    </section>
-  );
-}
+import { emptySharing, type Review, type Sharing } from "./types";
 
 export function CopyCard({
   report,
@@ -134,7 +28,7 @@ export function CopyCard({
       opening: tweetOnly ? sharing.opening : sharing.opening || draft.opening,
       tweet: sharing.tweet || draft.tweet,
     });
-    notify("空欄に体験の流れから雛形を入れました。読み直して整えてください。");
+    notify("空欄に選んだ原文の抜粋を入れました。Codexで文章を整えられます。");
   };
   const copy = async (text: string) => {
     try {
@@ -155,9 +49,7 @@ export function CopyCard({
         </div>
         <div>
           <h2>記事の冒頭と、ツイート</h2>
-          <p>
-            場所・行動・結果から雛形を作り、Codexでつながる文章に整えて取り込めます。
-          </p>
+          <p>抽出した語句・原文の候補から、Codexで自然な紹介文に整えます。</p>
         </div>
         <button
           className="button"
@@ -165,7 +57,7 @@ export function CopyCard({
           disabled={!draft.opening && !draft.tweet}
         >
           <Sparkles size={15} />
-          空欄に雛形を入れる
+          空欄に素材を入れる
         </button>
       </div>
       <div className="copy-grid">
@@ -215,7 +107,7 @@ export function CopyCard({
               onChange={(e) => onChange({ ...sharing, tweet: e.target.value })}
               rows={5}
               maxLength={4000}
-              placeholder="原則3行で、場所 → 行動 → その結果。ワールド名・URL・2タグは下で自動付与します。"
+              placeholder="資料にある具体的な特徴と体験を短く。チャットで完成文を受け取れます。"
             />
           </label>
           <div className="tweet-controls">

@@ -826,3 +826,100 @@ label small,
   flex-wrap: wrap;
   align-items: center;
 }
+
+.framework-name {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 16px 0;
+  letter-spacing: 0.06em;
+}
+.source-materials-card .api-source,
+.source-document {
+  border: 1px solid var(--line);
+  padding: 16px;
+  margin: 16px 0;
+}
+.source-materials-card summary {
+  cursor: pointer;
+  font-size: 12px;
+}
+.source-quote {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.8;
+}
+.source-actions,
+.source-document-heading,
+.source-analysis-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.source-document-heading,
+.source-analysis-heading {
+  justify-content: space-between;
+}
+.source-document h3,
+.source-analysis-heading h3 {
+  margin: 0;
+  font-size: 13px;
+  color: var(--theme-text);
+}
+.source-document label {
+  display: block;
+  margin-top: 12px;
+}
+.source-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.source-keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 14px 0;
+}
+.source-keywords span {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  color: var(--theme-secondary);
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.source-elements {
+  display: grid;
+  gap: 10px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+.source-element {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  padding: 12px;
+  margin: 0;
+}
+.source-element input {
+  width: auto;
+  margin-top: 5px;
+  flex: none;
+}
+.source-element > span {
+  min-width: 0;
+}
+.source-element small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  margin-bottom: 5px;
+}
+@media (max-width: 1000px) {
+  .source-fields {
+    grid-template-columns: 1fr;
+  }
+}

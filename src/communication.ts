@@ -1,3 +1,4 @@
+import { currentElements } from "./materials";
 import twitterText from "twitter-text";
 const { extractHashtags, extractUrls, parseTweet } = twitterText;
 import { emptyExperience, emptySharing, type Review } from "./types";
@@ -36,16 +37,18 @@ const sentence = (text: string) =>
     .replace(/[。.!！?？\s]+$/, "");
 export function draftCopy(r: Review): { opening: string; tweet: string } {
   const experience = r.experience ?? emptyExperience();
-  // This is a scaffold from supplied facts. Codex connects the experience without inventing missing results.
-  const lines = [experience.scene, experience.action, experience.result]
-    .map(sentence)
-    .filter(Boolean)
-    .map((text) => `${text}。`);
+  const excerpts = currentElements(r).slice(0, 3);
+  const lines = excerpts.length
+    ? excerpts
+    : [experience.scene, experience.action, experience.result]
+        .map(sentence)
+        .filter(Boolean)
+        .map((text) => `${text}。`);
   return { opening: lines.join(""), tweet: lines.join("\n") };
 }
 export function tweetTemplate(r: Review): string {
   return [
-    "【どんな場所・環境なのか】。\n【そこで何をする・楽しめるのか】。\n【その行動で何が見える・聞こえる・体験できるのか】。",
+    "【資料から拾った、その場所ならではの特徴】。\n【そこで体験できることを具体的に】。",
     platformLine(r),
     tweetFooter(r),
   ]

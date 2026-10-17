@@ -492,14 +492,17 @@ fn sar_only_material_roundtrip_and_changed_result_invalidates_generated_copy() {
     let input: serde_json::Value =
         serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
     assert_eq!(input["review"]["experience"]["action"], "窓際に座る");
-    assert_eq!(input["communication"]["framework"], "SAR-v1");
+    assert_eq!(
+        input["communication"]["framework"],
+        "Scene / Action / DiffWow"
+    );
     assert!(input["communication"]["footer"]
         .as_str()
         .unwrap()
         .ends_with(TWEET_TAGS));
     let request = std::fs::read_to_string(dir.join("request.md")).unwrap();
-    assert!(request.contains("原則3行"));
-    assert!(request.contains("3行にするための体験を捏造しません"));
+    assert!(request.contains("materials.sources"));
+    assert!(request.contains("原文にない機能・感情・価値を補いません"));
     std::fs::write(dir.join("article.md"), "# 喫茶店の記録\n\n窓際に座った。").unwrap();
     std::fs::write(dir.join("sharing.json"), r#"{"opening":"夜の喫茶店で窓際に座り、雨音を聞けます。","tweet":"夜の喫茶店。\n窓際に座る。\n雨音を聞ける。"}"#).unwrap();
     let imported = workspace::import(tmp.path(), &mut db, &r.id).unwrap();
@@ -682,4 +685,115 @@ fn sar_only_tweet_needs_no_article_and_rejects_invalid_or_stale_outputs() {
     assert!(workspace::import_tweet(tmp.path(), &mut db, &r.id)
         .unwrap_err()
         .contains("先に"));
+}
+
+#[test]
+fn source_documents_and_verified_elements_roundtrip_and_changes_block_import() {
+    let tmp = tempfile::tempdir().unwrap();
+    let mut db = store::open(tmp.path()).unwrap();
+    let mut r = review();
+    r.notes = Notes::default();
+    r.body.clear();
+    assert!(r.source_documents.is_empty());
+    assert!(r.material_analysis.is_none());
+    let doc_id = "6c336859-8af6-47db-8999-9d689c38f705";
+    r.source_documents.push(SourceDocument {
+        id: doc_id.into(),
+        title: "訪問メモ".into(),
+        kind: "experience".into(),
+        url: "https://example.test/source".into(),
+        text: "扉を開くと雨音が聞こえる。未確認：照明は変わる？".into(),
+    });
+    r.material_analysis = Some(MaterialAnalysis {
+        source_hash: material_source_hash(&r),
+        keywords: vec!["雨音".into()],
+        elements: vec![
+            MaterialElement {
+                source_id: doc_id.into(),
+                quote: "扉を開くと雨音が聞こえる。".into(),
+                included: true,
+            },
+            MaterialElement {
+                source_id: doc_id.into(),
+                quote: "未確認：照明は変わる？".into(),
+                included: false,
+            },
+        ],
+    });
+    let r = store::save(&mut db, r, "sources").unwrap();
+    workspace::prepare_tweet(tmp.path(), &db, &r.id).unwrap();
+    let dir = workspace::folder(tmp.path(), &r.id).unwrap();
+    let input: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+    assert_eq!(input["materials"]["analysisStatus"], "ready");
+    assert_eq!(
+        input["materials"]["analysis"]["elements"][1]["included"],
+        false
+    );
+    assert_eq!(input["materials"]["sources"][1]["kind"], "experience");
+    let mut changed = r.clone();
+    changed.source_documents[0].kind = "reference".into();
+    let changed = store::save(&mut db, changed, "source-kind").unwrap();
+    assert!(!material_analysis_current(&changed));
+    workspace::prepare(tmp.path(), &db, &r.id).unwrap();
+    let packet: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(dir.join("input.json")).unwrap()).unwrap();
+    assert!(packet["materials"]["analysis"].is_null());
+    assert!(packet["review"]["materialAnalysis"].is_null());
+    assert_eq!(
+        packet["materials"]["analysisStatus"],
+        "extract-from-sources"
+    );
+    std::fs::write(dir.join("article.md"), "# Material\n\nBody").unwrap();
+    let mut edited = changed;
+    edited.source_documents[0].text.push_str("追記");
+    store::save(&mut db, edited, "source-text").unwrap();
+    assert!(workspace::import(tmp.path(), &mut db, &r.id)
+        .unwrap_err()
+        .contains("変更"));
+}
+
+#[test]
+fn fabricated_elements_and_invalid_document_metadata_are_rejected() {
+    let mut r = review();
+    r.material_analysis = Some(MaterialAnalysis {
+        source_hash: material_source_hash(&r),
+        keywords: vec!["説明".into()],
+        elements: vec![MaterialElement {
+            source_id: "api".into(),
+            quote: "存在しない機能".into(),
+            included: true,
+        }],
+    });
+    assert!(r.validate().unwrap_err().contains("原文"));
+    r.material_analysis.as_mut().unwrap().elements[0].quote = "作者の説明".into();
+    assert!(r.validate().is_ok());
+    r.material_analysis.as_mut().unwrap().keywords = vec!["存在しない語句".into()];
+    assert!(r.validate().is_err());
+    r.material_analysis = None;
+    r.source_documents = vec![SourceDocument {
+        id: "api".into(),
+        kind: "author".into(),
+        ..Default::default()
+    }];
+    assert!(r.validate().is_err());
+    r.source_documents[0].id = "6c336859-8af6-47db-8999-9d689c38f705".into();
+    r.source_documents[0].text = "x".repeat(48_001);
+    assert!(r.validate().is_err());
+    r.source_documents[0].text.clear();
+    let repeated = r.source_documents[0].clone();
+    r.source_documents.push(repeated);
+    assert!(r.validate().is_err());
+}
+
+#[test]
+fn browser_source_hash_matches_native_for_unicode_and_newlines() {
+    let mut r = review();
+    r.world.name = "音の庭🌙".into();
+    r.world.description = "扉の向こうで「雨音」が聞こえる。\r\n未確認？".into();
+    r.world.tags = vec!["quiet".into(), "夜".into()];
+    assert_eq!(
+        material_source_hash(&r),
+        "0d3aacb74532be5ccc71156a72643f0ae6ca6b3525a5e6e6f6f2b9ae1144b746"
+    );
 }

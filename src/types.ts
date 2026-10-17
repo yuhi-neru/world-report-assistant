@@ -45,6 +45,23 @@ export const emptyExperience = (): Experience => ({
   action: "",
   result: "",
 });
+export interface SourceDocument {
+  id: string;
+  title: string;
+  url: string;
+  kind: "experience" | "author" | "reference";
+  text: string;
+}
+export interface MaterialElement {
+  sourceId: string;
+  quote: string;
+  included: boolean;
+}
+export interface MaterialAnalysis {
+  sourceHash: string;
+  keywords: string[];
+  elements: MaterialElement[];
+}
 export interface Sharing {
   opening: string;
   tweet: string;
@@ -75,6 +92,8 @@ export interface Review {
   brief?: Brief;
   experience?: Experience;
   articleMaterial?: ArticleMaterial;
+  sourceDocuments?: SourceDocument[];
+  materialAnalysis?: MaterialAnalysis | null;
   sharing?: Sharing;
   title: string;
   body: string;
@@ -155,6 +174,8 @@ export function newReview(): Review {
     brief: emptyBrief(),
     experience: emptyExperience(),
     articleMaterial: emptyArticleMaterial(),
+    sourceDocuments: [],
+    materialAnalysis: null,
     sharing: emptySharing(),
     title: "",
     body: "",
@@ -179,6 +200,8 @@ export function editKey(r: Review): string {
     r.brief,
     r.experience,
     r.articleMaterial,
+    r.sourceDocuments,
+    r.materialAnalysis,
     r.sharing,
     r.title,
     r.body,

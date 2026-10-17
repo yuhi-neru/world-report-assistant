@@ -12,7 +12,7 @@ const fields: {
   {
     key: "activities",
     label: "体験した順序・遊び方",
-    hint: "SARの行動を詳しく。どこへ進み、何を操作し、どう変わったか。散策や撮影の流れでも大丈夫です。",
+    hint: "体験した行動を詳しく。どこへ進み、何を操作し、どう変わったか。散策や撮影の流れでも大丈夫です。",
     placeholder: "・入口から窓際の席へ移動した\n・席に座って外を眺めた",
     wide: true,
   },
@@ -79,7 +79,7 @@ export function ArticleNotesCard({
         <div>
           <h2>はてな記事の材料</h2>
           <p>
-            SARで伝えた体験を、本文で詳しく。重なる内容は書き直さず、補足したいことだけ箇条書きで残せます。
+            集めた素材を、本文で詳しく。重なる内容は書き直さず、補足したいことだけ箇条書きで残せます。
           </p>
         </div>
         <span className="count-label">すべて任意</span>
@@ -136,7 +136,7 @@ export function ArticleNotesCard({
       <div className="material-section">
         <h3>本文に残す体験</h3>
         <p className="material-hint">
-          SARや写真の説明も記事の材料になります。本文の各見出しを、この欄の数だけ作る必要はありません。
+          上の資料や写真の説明も記事の材料になります。本文の各見出しを、この欄の数だけ作る必要はありません。
         </p>
         <div className="notes-grid">
           {fields.map((f) => (
@@ -162,7 +162,7 @@ export function ArticleNotesCard({
         >
           <summary>記事の軸・おすすめの補足（任意）</summary>
           <p className="material-hint">
-            SARに加えて伝えたいことがある場合に。以前の「ひとことでいうと」「どんな人におすすめ？」の入力もここに残ります。
+            資料に加えて伝えたいことがある場合に。以前の「ひとことでいうと」「どんな人におすすめ？」の入力もここに残ります。
           </p>
           <label>
             記事全体で伝えたいこと
@@ -171,7 +171,7 @@ export function ArticleNotesCard({
               maxLength={10000}
               aria-label="記事全体で伝えたいこと"
               value={report.notes.summary}
-              placeholder="SARとは別に、記事全体で残しておきたいことがあれば。"
+              placeholder="記事全体で残しておきたいことがあれば。"
               onChange={(e) => note("summary", e.target.value)}
             />
           </label>

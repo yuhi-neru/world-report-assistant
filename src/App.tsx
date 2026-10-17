@@ -47,7 +47,8 @@ import {
   type Settings,
 } from "./types";
 import SettingsModal from "./Settings";
-import { ExperienceCard, CopyCard } from "./WritingCards";
+import { CopyCard } from "./WritingCards";
+import { SourceMaterialsCard } from "./SourceMaterialsCard";
 import { ArticleNotesCard } from "./ArticleNotesCard";
 import {
   readAppearance,
@@ -918,11 +919,11 @@ export default function App() {
                     </button>
                   </div>
                 </section>
-                <ExperienceCard
+                <SourceMaterialsCard
+                  key={draft.id}
                   report={draft}
-                  onChange={(experience) =>
-                    update((r) => ({ ...r, experience }))
-                  }
+                  onChange={update}
+                  notify={notify}
                 />
                 <ArticleNotesCard
                   key={draft.id}

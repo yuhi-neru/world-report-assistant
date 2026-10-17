@@ -118,6 +118,66 @@ pub struct Experience {
     pub action: String,
     pub result: String,
 }
+#[derive(Clone, Default, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase", default)]
+pub struct SourceDocument {
+    pub id: String,
+    pub title: String,
+    pub url: String,
+    pub kind: String,
+    pub text: String,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MaterialElement {
+    pub source_id: String,
+    pub quote: String,
+    pub included: bool,
+}
+#[derive(Clone, Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct MaterialAnalysis {
+    pub source_hash: String,
+    pub keywords: Vec<String>,
+    pub elements: Vec<MaterialElement>,
+}
+pub fn material_sources(r: &Review) -> Vec<SourceDocument> {
+    let mut sources = vec![SourceDocument {
+        id: "api".into(),
+        title: if r.world.name.is_empty() {
+            "ワールドAPI".into()
+        } else {
+            r.world.name.clone()
+        },
+        kind: "author".into(),
+        url: if r.world.id.is_empty() {
+            String::new()
+        } else {
+            format!("https://vrchat.com/home/world/{}", r.world.id)
+        },
+        text: format!(
+            "{}\n{}\n{}",
+            r.world.name,
+            r.world.description,
+            r.world.tags.join(" ")
+        ),
+    }];
+    sources.retain(|s| !s.text.trim().is_empty());
+    sources.extend(r.source_documents.clone());
+    sources
+}
+pub fn material_source_hash(r: &Review) -> String {
+    let values = material_sources(r)
+        .into_iter()
+        .map(|s| serde_json::json!([s.id, s.title, s.kind, s.url, s.text]))
+        .collect::<Vec<_>>();
+    hash(serde_json::to_string(&values).unwrap().as_bytes())
+}
+pub fn material_analysis_current(r: &Review) -> bool {
+    r.material_analysis
+        .as_ref()
+        .is_some_and(|a| a.source_hash == material_source_hash(r))
+}
 pub const TWEET_TAGS: &str = "#VRchat #VRChatワールド紹介";
 pub fn tweet_footer(world: &World) -> String {
     format!(
@@ -163,6 +223,10 @@ pub struct Review {
     pub experience: Experience,
     #[serde(default)]
     pub article_material: ArticleMaterial,
+    #[serde(default)]
+    pub source_documents: Vec<SourceDocument>,
+    #[serde(default)]
+    pub material_analysis: Option<MaterialAnalysis>,
     #[serde(default)]
     pub sharing: Sharing,
     pub title: String,
@@ -227,6 +291,52 @@ impl Review {
             || self.categories.iter().any(|s| s.len() > 100)
         {
             return Err("入力内容が大きすぎます".into());
+        }
+        if self.source_documents.len() > 10
+            || serde_json::to_vec(&self.source_documents).unwrap().len() > 500_000
+        {
+            return Err("追加資料は10件・合計500KB以内にしてください".into());
+        }
+        let mut ids = std::collections::HashSet::new();
+        for source in &self.source_documents {
+            if !valid_id(&source.id)
+                || !ids.insert(&source.id)
+                || !matches!(source.kind.as_str(), "experience" | "author" | "reference")
+                || source.title.chars().count() > 200
+                || source.url.chars().count() > 2000
+                || source.text.len() > 48_000
+            {
+                return Err("追加資料の形式かサイズを確認してください".into());
+            }
+        }
+        if let Some(analysis) = &self.material_analysis {
+            if analysis.source_hash.len() != 64
+                || !analysis.source_hash.bytes().all(|b| b.is_ascii_hexdigit())
+                || analysis.keywords.len() > 30
+                || analysis.keywords.iter().any(|s| s.chars().count() > 48)
+                || analysis.elements.len() > 40
+                || analysis
+                    .elements
+                    .iter()
+                    .any(|s| s.quote.is_empty() || s.quote.chars().count() > 600)
+                || serde_json::to_vec(analysis).unwrap().len() > 120_000
+            {
+                return Err("抽出候補の形式かサイズを確認してください".into());
+            }
+            if material_analysis_current(self) {
+                let sources = material_sources(self);
+                if analysis.elements.iter().any(|e| {
+                    !sources
+                        .iter()
+                        .any(|s| s.id == e.source_id && s.text.contains(&e.quote))
+                }) || analysis
+                    .keywords
+                    .iter()
+                    .any(|word| word.is_empty() || !sources.iter().any(|s| s.text.contains(word)))
+                {
+                    return Err("抽出候補が原文と一致しません。資料から再抽出してください".into());
+                }
+            }
         }
         if self.visited_at.len() != 10
             || !self.visited_at.bytes().enumerate().all(|(i, b)| {
